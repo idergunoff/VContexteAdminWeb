@@ -1,0 +1,134 @@
+
+form {
+    max-width: 300px;
+}
+
+
+
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    margin: 10px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    width: 95%;
+}
+
+.title {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.logout-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.logout-button:hover {
+    background-color: #d32f2f;
+}
+.container {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin: 20px auto;
+    gap: 20px;
+}
+.column {
+    flex: 1;
+    margin: 0 10px;
+    padding: 20px;
+    background-color: #f4f4f9;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.column h2 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* Стиль для контейнера выпадающего списка */
+select {
+    width: 100%;  /* Занимает всю ширину колонки */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    font-size: 16px;
+    color: #333;
+    appearance: none;  /* Убираем стандартный треугольник в некоторых браузерах */
+    cursor: pointer;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+select:focus {
+    outline: none;  /* Убираем стандартную рамку */
+    border-color: #4a90e2;  /* Синий цвет рамки при фокусе */
+}
+
+option {
+    padding: 10px;
+    background-color: white;
+    color: black;
+}
+
+/* Стиль стрелки для выпадающего списка */
+select::after {
+    content: "▼";
+    font-size: 14px;
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+}
+ul {
+
+    max-height: 80vh;  /* Максимальная высота списка */
+    overflow-y: auto;   /* Вертикальная прокрутка, если контент превышает высоту */
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    list-style-type: none;
+    padding: 0;
+}
+li {
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+}
+
+.word-item {
+    cursor: pointer;
+    padding: 10px;
+    margin-bottom: 5px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.word-item:hover {
+    background-color: #f0f0f0;
+}
+
+.word-item.selected {
+    background-color: #c6e5ff;
+    font-weight: bold;
+}
+

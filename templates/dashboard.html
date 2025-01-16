@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная страница</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="header">
+        <h1 class="title">Административная панель</h1>
+        <button class="logout-button" onclick="logout()">Выйти</button>
+    </header>
+    <div class="container">
+        <div class="column">
+            <h2>Список 1</h2>
+            <label for="dropdown">Выберите элемент:</label>
+            <select id="dropdown">
+                {% for item in dict_all.word_month %}
+                    <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+            </select>
+            <ul id="word-list">
+                <li>Здесь появятся слова за выбранный месяц</li>
+            </ul>
+        </div>
+        <div class="column">
+            <h2 id="trying-header">Список 2</h2>
+            <ul id="trying-list">
+                <!-- Перебор пользователей из словаря -->
+                {% for user_id, user_data in dict_all.dict_result.items() %}
+                    <li title="Зарегистрирован: {{ user_data.date_register.strftime('%d.%m.%Y') }}",
+                        style="background-color: #f7faa6;
+                        {% if user_data.done %}
+                            background-color: #bfffbf;
+                        {% endif %}
+                        {% if user_data.done_tt %}
+                            background-color: #45ece7;
+                        {% endif %}
+                        {% if user_data.skip %}
+                            background-color: #ffbfbf;
+                        {% endif %}"
+                        onclick="loadUserVersions('{{ user_data.t_id }}')">
+                        {% if user_data.user_day %}
+                        🕺
+                        {% endif %}
+                        {% if user_data.user_remind %}
+                        🔔
+                        {% endif %}
+
+                        <strong>{{ user_data.username }}</strong> - 📦{{ user_data.count_vers }}
+                        {% if user_data.hint > 0 %}
+                            🧿{{ user_data.hint }}
+                        {% endif %}
+                        {% if user_data.hint_allusion %}
+                            💎
+                        {% endif %}
+                        {% if user_data.hint_center %}
+                            🌎
+                        {% endif %}
+                        {% if user_data.hint_word_pixel %}
+                            🖼️
+                        {% endif %}
+                        {% if user_data.hint_word_tail %}
+                            🦎
+                        {% endif %}
+                        {% if user_data.hint_word_metr %}
+                            📏
+                        {% endif %}
+                        <br>
+                        {% if user_data.tt_id %}
+                        🐛{{ user_data.count_vers_tt }}({{ user_data.count_word_tt }})
+                            {% if user_data.hint_top_ten %}
+                                🍤
+                            {% endif %}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="column">
+            <h2 id="version-header">Список версий пользователя</h2>
+            <ul id="version-list">
+                <li>Выберите пользователя для отображения версий</li>
+            </ul>
+        </div>
+    </div>
+    <script src="/static/script.js"> </script>
+</body>
+</html>
