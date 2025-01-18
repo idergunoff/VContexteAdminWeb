@@ -11,6 +11,7 @@ async function loadUserVersions(tryingId) {
         const data = await response.json();
         // Очищаем список в третьем блоке и добавляем новые элементы
         const header = document.getElementById('version-header');
+        header.setAttribute('data-trying-id', tryingId)
         const versionList = document.getElementById('version-list');
         versionList.innerHTML = ''; // Очищаем предыдущий список
         if (data.versions.length > 0) {
@@ -30,6 +31,28 @@ async function loadUserVersions(tryingId) {
         console.error('Ошибка:', error);
     }
 }
+
+
+document.querySelectorAll('input[name="version-sort"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const header = document.getElementById('version-header');
+        const tryingId = header.getAttribute('data-trying-id');
+        if (tryingId) {
+            loadUserVersions(tryingId);
+        }
+    });
+});
+
+
+document.querySelectorAll('input[name="version-type"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const header = document.getElementById('version-header');
+        const tryingId = header.getAttribute('data-trying-id');
+        if (tryingId) {
+            loadUserVersions(tryingId);
+        }
+    });
+});
 
 
 function setBgItem(index, listItem) {
