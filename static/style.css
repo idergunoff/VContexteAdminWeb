@@ -132,3 +132,99 @@ li {
     font-weight: bold;
 }
 
+
+/* Общие стили для кнопок */
+button {
+  background-color: #ffb65e; /* Цвет фона кнопки */
+  color: white; /* Белый текст */
+  border: none; /* Убираем обводку */
+  border-radius: 8px; /* Скругленные углы */
+  padding: 8px 16px; /* Отступы внутри кнопки (меньше) */
+  font-size: 14px; /* Размер шрифта (меньше) */
+  cursor: pointer; /* Указатель в виде руки */
+  transition: all 0.3s ease; /* Плавный переход при наведении */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Легкая тень */
+  margin-right: 10px; /* Отступ между кнопками */
+  margin-bottom: 10px; /* Отступ между строками кнопок */
+}
+
+button:hover {
+  background-color: #d77e14; /* Темный фиолетовый цвет при наведении */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); /* Тень увеличивается при наведении */
+}
+
+button:active {
+  background-color: #be6800; /* Очень темный фиолетовый цвет при нажатии */
+  transform: translateY(2px); /* Эффект нажатия */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Тень уменьшается при нажатии */
+}
+
+button:disabled {
+  background-color: #cccccc; /* Серый цвет для отключенных кнопок */
+  cursor: not-allowed; /* Указатель в виде запрета */
+  box-shadow: none; /* Убираем тень */
+}
+
+/* Радио-кнопки (скрываем стандартный вид) */
+input[type="radio"] {
+  display: none;
+}
+
+/* Контейнер для двух столбиков радио-кнопок */
+.radio-container {
+  display: flex;
+  gap: 40px; /* Расстояние между столбиками */
+}
+
+/* Кастомные радио-кнопки */
+.radio-column {
+  flex: 1; /* Занимает равное пространство */
+}
+
+input[type="radio"] + label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px; /* Размер текста */
+  margin-bottom: 10px; /* Отступ между радио-кнопками */
+}
+
+input[type="radio"] + label::before {
+  content: ""; /* Пустое содержимое */
+  display: inline-block;
+  width: 18px; /* Размер круга */
+  height: 18px; /* Размер круга */
+  border: 2px solid #ffb65e; /* Цвет обводки */
+  border-radius: 50%; /* Делаем круг */
+  margin-right: 10px; /* Отступ от текста */
+  transition: all 0.3s ease; /* Плавный переход */
+  position: relative;
+}
+
+input[type="radio"]:checked + label::before {
+  background-color: #ffb65e; /* Фиолетовый цвет для выбранного */
+  border-color: #ffb65e; /* Обводка для выбранного */
+}
+
+input[type="radio"] + label::after {
+  content: ""; /* Пустое содержимое */
+  display: inline-block;
+  width: 12px; /* Размер внутреннего круга */
+  height: 12px; /* Размер внутреннего круга */
+  background-color: white; /* Белый цвет внутреннего круга */
+  border-radius: 50%; /* Делаем круг */
+  position: absolute;
+  top: 5px; /* Положение по вертикали */
+  left: 5px; /* Положение по горизонтали */
+  opacity: 0; /* Скрываем внутренний круг */
+  transition: opacity 0.3s ease; /* Плавный переход */
+}
+
+input[type="radio"]:checked + label::after {
+  opacity: 1; /* Внутренний круг становится видимым при выборе */
+}
+
+/* При наведении */
+input[type="radio"] + label:hover::before {
+  border-color: #d77e14; /* Темная обводка при наведении */
+}

@@ -1,7 +1,10 @@
 async function loadUserVersions(tryingId) {
     try {
+        const versionSort = document.querySelector('input[name="version-sort"]:checked').value;
+        const versionType = document.querySelector('input[name="version-type"]:checked').value;
+
         // Отправляем запрос на сервер для получения списка версий
-        const response = await fetch(`/versions/${tryingId}`);
+        const response = await fetch(`/versions/${tryingId}?version_sort=${versionSort}&version_type=${versionType}`);
         if (!response.ok) {
             throw new Error('Ошибка при загрузке данных');
         }
