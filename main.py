@@ -12,7 +12,7 @@ from auth import authenticate_user, create_access_token, oauth2_scheme
 from word import router as word_router
 
 from model import *
-from func import get_bg_color, get_versions_main, get_versions_tt
+from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word
 
 app = FastAPI()
 
@@ -82,72 +82,8 @@ async def admin_page(request: Request):
         result_w = await session.execute(select(Word.id, Word.word, Word.date_play).order_by(Word.date_play))
         words = result_w.all()
 
-        result_u = await session.execute(select(User).order_by(User.date_register))
-        users = result_u.scalars().all()
-
         result_cw = await session.execute(select(Word).filter_by(current=True))
         curr_word = result_cw.scalar_one_or_none()
-
-        result_t = await session.execute(
-            select(Trying)
-            .options(selectinload(Trying.versions))
-            .filter(Trying.word_id == curr_word.id))
-        tryings = result_t.scalars().all()
-
-        result_hu = await session.execute(select(UpdateTime))
-        hour_update = result_hu.scalar_one_or_none().hour
-
-        result_ud = await session.execute(
-            select(User).filter(
-                User.date_register > datetime.datetime(
-                    year=curr_word.date_play.year,
-                    month=curr_word.date_play.month,
-                    day=curr_word.date_play.day, hour=hour_update),
-                User.date_register < datetime.datetime(
-                    year=curr_word.date_play.year,
-                    month=curr_word.date_play.month,
-                    day=curr_word.date_play.day, hour=hour_update) + datetime.timedelta(days=1)
-            ))
-        user_day = result_ud.scalars().all()
-
-        result_ttt = await session.execute(
-            select(TryingTopTen)
-            .options(selectinload(TryingTopTen.vtt))
-            .filter(TryingTopTen.word_id == curr_word.id))
-        ttt = result_ttt.scalars().all()
-
-        result_ur = await session.execute(select(UserRemind).filter(UserRemind.date_remind > (datetime.datetime.now() - datetime.timedelta(days=1))))
-        user_remind = result_ur.scalars().all()
-
-        result_hva = await session.execute(
-            select(Trying).join(Version).join(HintMainVers)
-            .filter(Trying.word_id == curr_word.id, HintMainVers.hint_type == 'allusion'))
-        hint_allusion = result_hva.scalars().all()
-
-        result_hvc = await session.execute(
-            select(Trying).join(Version).join(HintMainVers)
-            .filter(Trying.word_id == curr_word.id, HintMainVers.hint_type == 'center'))
-        hint_center = result_hvc.scalars().all()
-
-        result_hwp = await session.execute(
-            select(Trying).join(HintMainWord)
-            .filter(Trying.word_id == curr_word.id, HintMainWord.hint_type == 'pixel'))
-        hint_word_pixel = result_hwp.scalars().all()
-
-        result_hwt = await session.execute(
-            select(Trying).join(HintMainWord)
-            .filter(Trying.word_id == curr_word.id, HintMainWord.hint_type == 'tail'))
-        hint_word_tail = result_hwt.scalars().all()
-
-        result_hwm = await session.execute(
-            select(Trying).join(HintMainWord)
-            .filter(Trying.word_id == curr_word.id, HintMainWord.hint_type == 'metr'))
-        hint_word_metr = result_hwm.scalars().all()
-
-        result_htt = await session.execute(
-            select(TryingTopTen).join(HintTopTen)
-            .filter(TryingTopTen.word_id == curr_word.id))
-        hint_top_ten = result_htt.scalars().all()
 
     word_month = []
     for w in words:
@@ -159,81 +95,13 @@ async def admin_page(request: Request):
     word_month.append("new")
 
     if curr_word:
-        for u in users:
-            t = next((t for t in tryings if t.user_id == u.id), None)
-            if t:
-                dict_result[u.id] = {
-                    "username": u.username,
-                    "date_register": u.date_register,
-                    "date_last": u.date_last,
-                    "score": u.score
-                }
-                dict_result[u.id]["t_id"] = t.id
-                dict_result[u.id]["date_trying"] = t.date_trying
-                dict_result[u.id]["done"] = t.done
-                dict_result[u.id]["date_done"] = t.date_done
-                dict_result[u.id]["hint"] = t.hint
-                dict_result[u.id]["skip"] = t.skip
-                dict_result[u.id]["count_vers"] = len(t.versions)
-            else:
-                continue
+        dict_all = await get_trying_by_word(curr_word.id)
 
-            tt = next((t for t in ttt if t.user_id == u.id), None)
-            if tt:
-                dict_result[u.id]["tt_id"] = tt.id
-                dict_result[u.id]["date_start_tt"] = tt.date_start
-                dict_result[u.id]["done_tt"] = tt.done
-                dict_result[u.id]["date_done_tt"] = tt.date_done
-                dict_result[u.id]["count_word_tt"] = tt.count_word
-                dict_result[u.id]["count_vers_tt"] = len(tt.vtt)
+        dict_all["word_month"] = word_month
 
-                ht = next((i for i in hint_top_ten if i.user_id == u.id), None)
-                dict_result[u.id]["hint_top_ten"] = True if ht else False
-
-            else:
-                dict_result[u.id]["tt_id"] = None
-                dict_result[u.id]["date_start_tt"] = None
-                dict_result[u.id]["done_tt"] = None
-                dict_result[u.id]["date_done_tt"] = None
-                dict_result[u.id]["count_word_tt"] = None
-                dict_result[u.id]["count_vers_tt"] = None
-                dict_result[u.id]["hint_top_ten"] = False
-
-
-            ud = next((i for i in user_day if i.id == u.id), None)
-            dict_result[u.id]["user_day"] = True if ud else False
-
-            ur = next((i for i in user_remind if i.id == u.id), None)
-            dict_result[u.id]["user_remind"] = True if ur else False
-
-            ha = next((i for i in hint_allusion if i.user_id == u.id), None)
-            dict_result[u.id]["hint_allusion"] = True if ha else False
-
-            hc = next((i for i in hint_center if i.user_id == u.id), None)
-            dict_result[u.id]["hint_center"] = True if hc else False
-
-            hw = next((i for i in hint_word_pixel if i.user_id == u.id), None)
-            dict_result[u.id]["hint_word_pixel"] = True if hw else False
-
-            ht = next((i for i in hint_word_tail if i.user_id == u.id), None)
-            dict_result[u.id]["hint_word_tail"] = True if ht else False
-
-            hm = next((i for i in hint_word_metr if i.user_id == u.id), None)
-            dict_result[u.id]["hint_word_metr"] = True if hm else False
-
-        dict_all = {
-            "word_month": word_month,
-            "dict_result": dict_result
-        }
 
         return templates.TemplateResponse("dashboard.html", {"request": request, "dict_all": dict_all})
 
-        # return {
-        #     "tryings":
-        #         [{"id": t.id, "user": t.user.username, "ttt": len(t.user.ttt), "done": t.done, "count_vers": count_vers} for t, count_vers in tryings],
-        #     "current_word":
-        #             {"word": curr_word.word, "id": curr_word.id, "context": json.loads(curr_word.context)}
-        # }
 
 @app.get("/versions/{trying_id}")
 async def get_user_versions(trying_id: str, version_sort: str, version_type: str):
@@ -306,129 +174,26 @@ async def get_month_word(month: str):
 
             return JSONResponse(content={"words": [{"id": word[0], "word": word[1], "order": word[2].strftime("%d.%m.%Y")} for word in words]})
 
+
 @app.get("/trying/{word_id}")
 async def get_trying(word_id: str):
-    dict_result = {}
     word_id = int(word_id)
-    async with get_session() as session:
-        result_u = await session.execute(select(User).order_by(User.date_register))
-        users = result_u.scalars().all()
+    dict_all = await get_trying_by_word(word_id)
+    return JSONResponse(dict_all)
 
-        result_w = await session.execute(select(Word).filter_by(id=word_id))
-        word = result_w.scalar_one_or_none()
 
-        result_t = await session.execute(
-            select(Trying)
-            .options(selectinload(Trying.versions))
-            .filter(Trying.word_id == word_id))
-        tryings = result_t.scalars().all()
+@app.post("/trying/skip/{trying_id}")
+async def skip_trying(trying_id: int):
+    try:
+        async with get_session() as session:
+            result = await session.execute(select(Trying).filter_by(id=trying_id))
+            trying = result.scalars().first()
+            if not trying:
+                raise HTTPException(status_code=404, detail="Trying not found")
 
-        result_ud = await session.execute(
-            select(User).filter(
-                User.date_register > word.date_play,
-                User.date_register < (word.date_play + datetime.timedelta(days=1))
-            ))
-        user_day = result_ud.scalars().all()
+            # Переключаем флаг skip
+            trying.skip = not trying.skip
 
-        result_ttt = await session.execute(
-            select(TryingTopTen)
-            .options(selectinload(TryingTopTen.vtt))
-            .filter(TryingTopTen.word_id == word_id))
-        ttt = result_ttt.scalars().all()
-
-        result_hva = await session.execute(
-            select(Trying).join(Version).join(HintMainVers)
-            .filter(Trying.word_id == word_id, HintMainVers.hint_type == 'allusion'))
-        hint_allusion = result_hva.scalars().all()
-
-        result_hvc = await session.execute(
-            select(Trying).join(Version).join(HintMainVers)
-            .filter(Trying.word_id == word_id, HintMainVers.hint_type == 'center'))
-        hint_center = result_hvc.scalars().all()
-
-        result_hwp = await session.execute(
-            select(Trying).join(HintMainWord)
-            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'pixel'))
-        hint_word_pixel = result_hwp.scalars().all()
-
-        result_hwt = await session.execute(
-            select(Trying).join(HintMainWord)
-            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'tail'))
-        hint_word_tail = result_hwt.scalars().all()
-
-        result_hwm = await session.execute(
-            select(Trying).join(HintMainWord)
-            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'metr'))
-        hint_word_metr = result_hwm.scalars().all()
-
-        result_htt = await session.execute(
-            select(TryingTopTen).join(HintTopTen)
-            .filter(TryingTopTen.word_id == word_id))
-        hint_top_ten = result_htt.scalars().all()
-
-    if word:
-        for u in users:
-            t = next((t for t in tryings if t.user_id == u.id), None)
-            if t:
-                dict_result[u.id] = {
-                    "username": u.username,
-                    "date_register": u.date_register.strftime('%d.%m.%Y'),
-                    "date_last": u.date_last.strftime('%d.%m.%Y %H:%M'),
-                    "score": u.score
-                }
-                dict_result[u.id]["t_id"] = t.id
-                dict_result[u.id]["date_trying"] = t.date_trying.strftime('%d.%m.%Y %H:%M:%S')
-                dict_result[u.id]["done"] = t.done
-                dict_result[u.id]["date_done"] = t.date_done.strftime('%d.%m.%Y %H:%M:%S') if t.done else None
-                dict_result[u.id]["hint"] = t.hint
-                dict_result[u.id]["skip"] = t.skip
-                dict_result[u.id]["count_vers"] = len(t.versions)
-            else:
-                continue
-
-            tt = next((t for t in ttt if t.user_id == u.id), None)
-            if tt:
-                dict_result[u.id]["tt_id"] = tt.id
-                dict_result[u.id]["date_start_tt"] = tt.date_start.strftime('%d.%m.%Y %H:%M:%S')
-                dict_result[u.id]["done_tt"] = tt.done
-                dict_result[u.id]["date_done_tt"] = tt.date_done.strftime('%d.%m.%Y %H:%M:%S') if tt.done else None
-                dict_result[u.id]["count_word_tt"] = tt.count_word
-                dict_result[u.id]["count_vers_tt"] = len(tt.vtt)
-
-                ht = next((i for i in hint_top_ten if i.user_id == u.id), None)
-                dict_result[u.id]["hint_top_ten"] = True if ht else False
-
-            else:
-                dict_result[u.id]["tt_id"] = None
-                dict_result[u.id]["date_start_tt"] = None
-                dict_result[u.id]["done_tt"] = None
-                dict_result[u.id]["date_done_tt"] = None
-                dict_result[u.id]["count_word_tt"] = None
-                dict_result[u.id]["count_vers_tt"] = None
-                dict_result[u.id]["hint_top_ten"] = False
-
-            ud = next((i for i in user_day if i.id == u.id), None)
-            dict_result[u.id]["user_day"] = True if ud else False
-
-            ha = next((i for i in hint_allusion if i.user_id == u.id), None)
-            dict_result[u.id]["hint_allusion"] = True if ha else False
-
-            hc = next((i for i in hint_center if i.user_id == u.id), None)
-            dict_result[u.id]["hint_center"] = True if hc else False
-
-            hw = next((i for i in hint_word_pixel if i.user_id == u.id), None)
-            dict_result[u.id]["hint_word_pixel"] = True if hw else False
-
-            ht = next((i for i in hint_word_tail if i.user_id == u.id), None)
-            dict_result[u.id]["hint_word_tail"] = True if ht else False
-
-            hm = next((i for i in hint_word_metr if i.user_id == u.id), None)
-            dict_result[u.id]["hint_word_metr"] = True if hm else False
-
-        dict_all = {
-            "word": word.word,
-            "date_play": word.date_play.strftime('%d.%m.%Y'),
-            "dict_result": dict_result
-        }
-
-        return JSONResponse(dict_all)
+        return {"message": f"Trying {trying_id} updated successfully", "skip": trying.skip}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

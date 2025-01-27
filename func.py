@@ -1,4 +1,5 @@
 import json
+import datetime
 
 from model import *
 
@@ -111,3 +112,111 @@ async def get_versions_tt(trying_id: str, version_sort: str):
     result = [{k: v for k, v in item.items() if k != 'date_version'} for item in versions_data]
 
     return {"versions": result, "username": user.username, "count_vers": len(versions_tt)}
+
+
+async def get_trying_by_word(word_id: int):
+    dict_result = {}
+    async with get_session() as session:
+        result_u = await session.execute(select(User).options(selectinload(User.coin)).order_by(User.date_register))
+        users = result_u.scalars().all()
+
+        result_w = await session.execute(select(Word).filter_by(id=word_id))
+        word = result_w.scalar_one_or_none()
+
+        result_t = await session.execute(
+            select(Trying)
+            .options(selectinload(Trying.versions))
+            .filter(Trying.word_id == word_id))
+        tryings = result_t.scalars().all()
+
+        result_ud = await session.execute(
+            select(User).filter(
+                User.date_register > word.date_play,
+                User.date_register < (word.date_play + datetime.timedelta(days=1))
+            ))
+        user_day = result_ud.scalars().all()
+
+        result_ttt = await session.execute(
+            select(TryingTopTen)
+            .options(selectinload(TryingTopTen.vtt))
+            .filter(TryingTopTen.word_id == word_id))
+        ttt = result_ttt.scalars().all()
+
+        result_hva = await session.execute(
+            select(Trying).join(Version).join(HintMainVers)
+            .filter(Trying.word_id == word_id, HintMainVers.hint_type == 'allusion'))
+        hint_allusion = result_hva.scalars().all()
+
+        result_hvc = await session.execute(
+            select(Trying).join(Version).join(HintMainVers)
+            .filter(Trying.word_id == word_id, HintMainVers.hint_type == 'center'))
+        hint_center = result_hvc.scalars().all()
+
+        result_hwp = await session.execute(
+            select(Trying).join(HintMainWord)
+            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'pixel'))
+        hint_word_pixel = result_hwp.scalars().all()
+
+        result_hwt = await session.execute(
+            select(Trying).join(HintMainWord)
+            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'tail'))
+        hint_word_tail = result_hwt.scalars().all()
+
+        result_hwm = await session.execute(
+            select(Trying).join(HintMainWord)
+            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'metr'))
+        hint_word_metr = result_hwm.scalars().all()
+
+        result_htt = await session.execute(
+            select(TryingTopTen).join(HintTopTen)
+            .filter(TryingTopTen.word_id == word_id))
+        hint_top_ten = result_htt.scalars().all()
+
+    if word:
+        for u in users:
+            t = next((t for t in tryings if t.user_id == u.id), None)
+            if t:
+                ud = next((i for i in user_day if i.id == u.id), None)
+                ha = [i for i in hint_allusion if i.user_id == u.id]
+                hc = [i for i in hint_center if i.user_id == u.id]
+                hw = next((i for i in hint_word_pixel if i.user_id == u.id), None)
+                ht = next((i for i in hint_word_tail if i.user_id == u.id), None)
+                hm = next((i for i in hint_word_metr if i.user_id == u.id), None)
+
+                dict_result[u.id] = {}
+                dict_result[u.id]['text'] = (f'{"🕺" if ud else ""}'
+                                             f'<b>{u.username}</b> (id {u.id}) - 📦{len(t.versions)}'
+                                             f'{" 🧿" + str(t.hint) if t.hint > 0 else ""}'
+                                             f'{" 💎" + str(len(ha)) if ha else ""}'
+                                             f'{" 🌎" + str(len(hc)) if hc else ""}'
+                                             f'{" 🖼" if hw else ""}{" 🦎" if ht else ""}{" 📏" if hm else ""}')
+
+                dict_result[u.id]['title'] = (f'📆{u.date_register.strftime("%d-%m-%Y")}\n'
+                                              f'✨{u.coin[0].coin}')
+
+                dict_result[u.id]['t_id'] = t.id
+
+                dict_result[u.id]['color'] = '#bfffbf' if t.done else '#f7faa6'
+                if t.skip:
+                    dict_result[u.id]['color'] = '#ffbfbf'
+            else:
+                continue
+
+            tt = next((t for t in ttt if t.user_id == u.id), None)
+            if tt:
+                ht = next((i for i in hint_top_ten if i.user_id == u.id), None)
+                dict_result[u.id]["text"] += (f'<br>🐛{len(tt.vtt)}({tt.count_word})'
+                                              f' {" 🍤" if ht else ""}')
+                if tt.done:
+                    dict_result[u.id]["color"] = '#45ece7'
+
+                if t.skip:
+                    dict_result[u.id]['color'] = '#ffbfbf'
+
+        dict_all = {
+            "word": word.word,
+            "date_play": word.date_play.strftime('%d.%m.%Y'),
+            "dict_result": dict_result
+        }
+
+    return dict_all

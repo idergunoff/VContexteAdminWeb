@@ -33,55 +33,16 @@
             </ul>
         </div>
         <div class="column">
-            <h2 id="trying-header">Попытки</h2>
+            <h2 id="trying-header">Слово: {{ dict_all.word }} {{dict_all.date_play}} — Всего: {{dict_all.dict_result | length}}</h2>
             <ul id="trying-list">
                 <!-- Перебор пользователей из словаря -->
                 {% for user_id, user_data in dict_all.dict_result.items() %}
-                    <li title="Зарегистрирован: {{ user_data.date_register.strftime('%d.%m.%Y') }}",
-                        style="background-color: #f7faa6;
-                        {% if user_data.done %}
-                            background-color: #bfffbf;
-                        {% endif %}
-                        {% if user_data.done_tt %}
-                            background-color: #45ece7;
-                        {% endif %}
-                        {% if user_data.skip %}
-                            background-color: #ffbfbf;
-                        {% endif %}"
-                        onclick="loadUserVersions('{{ user_data.t_id }}')">
-                        {% if user_data.user_day %}
-                        🕺
-                        {% endif %}
-                        {% if user_data.user_remind %}
-                        🔔
-                        {% endif %}
+                    <li title="{{ user_data.title }},"
+                        style="background-color: {{ user_data.color }};"
 
-                        <strong>{{ user_data.username }}</strong> - 📦{{ user_data.count_vers }}
-                        {% if user_data.hint > 0 %}
-                            🧿{{ user_data.hint }}
-                        {% endif %}
-                        {% if user_data.hint_allusion %}
-                            💎
-                        {% endif %}
-                        {% if user_data.hint_center %}
-                            🌎
-                        {% endif %}
-                        {% if user_data.hint_word_pixel %}
-                            🖼️
-                        {% endif %}
-                        {% if user_data.hint_word_tail %}
-                            🦎
-                        {% endif %}
-                        {% if user_data.hint_word_metr %}
-                            📏
-                        {% endif %}
-                        <br>
-                        {% if user_data.tt_id %}
-                        🐛{{ user_data.count_vers_tt }}({{ user_data.count_word_tt }})
-                            {% if user_data.hint_top_ten %}
-                                🍤
-                            {% endif %}
-                        {% endif %}
+                        onclick="loadUserVersions('{{ user_data.t_id }}')">
+
+                        {{ user_data.text | safe }}
                     </li>
                 {% endfor %}
             </ul>
@@ -105,6 +66,7 @@
                 <div>
                     <button id="graph-vers-btn">graph version</button>
                     <button id="graph-user-btn">graph user</button>
+                    <button id="skip-user-btn">skip</button>
                 </div>
             </div>
             <ul id="version-list">

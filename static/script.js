@@ -11,7 +11,7 @@ async function loadUserVersions(tryingId) {
         const data = await response.json();
         // Очищаем список в третьем блоке и добавляем новые элементы
         const header = document.getElementById('version-header');
-        header.setAttribute('data-trying-id', tryingId)
+        header.setAttribute('data-trying-id', tryingId);
         const versionList = document.getElementById('version-list');
         versionList.innerHTML = ''; // Очищаем предыдущий список
         if (data.versions.length > 0) {
@@ -79,12 +79,17 @@ function logout() {
 
 async function onWordClick(wordId) {
     try {
+        // Проверяем, поддерживает ли устройство сенсорный ввод
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints || navigator.msMaxTouchPoints;
+
+
         const response = await fetch(`/trying/${wordId}`);
         if (!response.ok) {
             throw new Error('Ошибка при загрузке данных');
         }
         const data = await response.json();
         const header = document.getElementById('trying-header');
+        header.setAttribute('data-word-id', wordId);
         const userListContainer = document.getElementById('trying-list');
         userListContainer.innerHTML = ''; // очищаем предыдущий список
 
@@ -93,30 +98,16 @@ async function onWordClick(wordId) {
 
             for (const [userId, userData] of Object.entries(data.dict_result)) {
                 const listItem = document.createElement('li');
-                listItem.setAttribute('title', `Зарегистрирован: ${userData.date_register}`);
+                if (isTouchDevice) {
+                    listItem.innerHTML = `${userData.text}<br>${userData.title}`;
+                } else {
+                    listItem.innerHTML = `${userData.text}`;
+                    listItem.setAttribute('title', `${userData.title}`);
+                };
 
-                listItem.style.backgroundColor = userData.skip ? '#ffbfbf' : userData.done_tt ? '#45ece7': userData.done ? '#bfffbf' : '#f7faa6';
 
-                let innerHTML = '';
+                listItem.style.backgroundColor = userData.color;
 
-                if (userData.user_day) innerHTML += '🕺';
-                if (userData.user_remind) innerHTML += '🔔';
-                innerHTML += `<strong>${userData.username}</strong> - 📦${userData.count_vers}`;
-
-                if (userData.hint > 0) innerHTML += ` 🧿${userData.hint}`;
-                if (userData.hint_allusion) innerHTML += ' 💎';
-                if (userData.hint_center) innerHTML += ' 🌎';
-                if (userData.hint_word_pixel) innerHTML += ' 🖼️';
-                if (userData.hint_word_tail) innerHTML += ' 🦎';
-                if (userData.hint_word_metr) innerHTML += ' 📏';
-
-                innerHTML += `<br>`;
-                if (userData.tt_id) {
-                    innerHTML += `🐛${userData.count_vers_tt}(${userData.count_word_tt})`;
-                    if (userData.hint_top_ten) innerHTML += ' 🍤';
-                }
-
-                listItem.innerHTML = innerHTML;
                 listItem.addEventListener('click', () => loadUserVersions(userData.t_id));
                 userListContainer.appendChild(listItem);
             }
@@ -153,6 +144,34 @@ document.getElementById('dropdown').addEventListener('change', async function ()
         } else {
             wordList.innerHTML = '<li>Нет слов за выбранный месяц</li>';
         }
+    } catch (error) {
+        console.error('Ошибка:', error);
+    }
+});
+
+
+document.getElementById('skip-user-btn').addEventListener('click', async () => {
+    try {
+        const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+        const wordId = document.getElementById('trying-header').getAttribute('data-word-id');
+
+        // Выполняем POST-запрос на сервер
+        const response = await fetch(`/trying/skip/${tryingId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при отправке данных на сервер');
+        }
+
+        const result = await response.json();
+        console.log('Ответ сервера:', result);
+
+        // После успешного выполнения вызываем loadUserVersions
+        await onWordClick(wordId);
     } catch (error) {
         console.error('Ошибка:', error);
     }
