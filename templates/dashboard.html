@@ -7,13 +7,14 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <header class="header">
         <h1 class="title">Административная панель</h1>
         <button class="logout-button" onclick="logout()">Выйти</button>
     </header>
     <div class="container">
         <div class="column">
-            <h2>Слова</h2>
+            <h2 id="word-header">Слова</h2>
             <div>
                 <button id="edit-context-btn">Редактировать список контекста</button>
                 <button id="edit-word-btn">Изменить</button>
@@ -37,7 +38,7 @@
             <ul id="trying-list">
                 <!-- Перебор пользователей из словаря -->
                 {% for user_id, user_data in dict_all.dict_result.items() %}
-                    <li title="{{ user_data.title }},"
+                    <li title="{{ user_data.title }}"
                         style="background-color: {{ user_data.color }};"
 
                         onclick="loadUserVersions('{{ user_data.t_id }}')">

@@ -228,3 +228,13 @@ input[type="radio"]:checked + label::after {
 input[type="radio"] + label:hover::before {
   border-color: #d77e14; /* Темная обводка при наведении */
 }
+
+
+/* Полупрозрачный эффект для перетаскиваемого элемента */
+.sortable-ghost {
+    opacity: 0.6;
+    background-color: #c6e5ff;
+}
+
+
+

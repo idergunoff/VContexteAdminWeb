@@ -7,7 +7,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from jinja2.runtime import new_context
+
 from auth import authenticate_user, create_access_token, oauth2_scheme
+
+from pydantic import BaseModel
+from typing import List
 
 from word import router as word_router
 
@@ -175,6 +180,16 @@ async def get_month_word(month: str):
             return JSONResponse(content={"words": [{"id": word[0], "word": word[1], "order": word[2].strftime("%d.%m.%Y")} for word in words]})
 
 
+@app.get("/word/{word_id}")
+async def get_word(word_id: str):
+    word_id = int(word_id)
+    async with get_session() as session:
+        result_w = await session.execute(select(Word).filter_by(id=word_id))
+        word = result_w.scalars().first()
+
+        return JSONResponse(content={"id": word.id, "word": word.word, "context": json.loads(word.context), "order": word.order})
+
+
 @app.get("/trying/{word_id}")
 async def get_trying(word_id: str):
     word_id = int(word_id)
@@ -197,3 +212,21 @@ async def skip_trying(trying_id: int):
         return {"message": f"Trying {trying_id} updated successfully", "skip": trying.skip}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class WordContextUpdate(BaseModel):
+    order: List[dict]
+
+@app.post("/update-context/{word_id}")
+async def update_context(word_id: int, context: WordContextUpdate):
+    new_context = [i["word_text"].split('. ')[1] for i in context.order]
+    word_id = int(word_id)
+    async with get_session() as session:
+        result = await session.execute(select(Word).filter_by(id=word_id))
+        word = result.scalars().first()
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        word.context = json.dumps(new_context)
+
+    return {"message": f"Word {word_id} updated successfully", "context": new_context}

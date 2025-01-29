@@ -82,7 +82,6 @@ async function onWordClick(wordId) {
         // Проверяем, поддерживает ли устройство сенсорный ввод
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints || navigator.msMaxTouchPoints;
 
-
         const response = await fetch(`/trying/${wordId}`);
         if (!response.ok) {
             throw new Error('Ошибка при загрузке данных');
@@ -119,6 +118,41 @@ async function onWordClick(wordId) {
     }
 }
 
+
+async function onNewWordClick(wordId) {
+    try {
+        const response = await fetch(`/word/${wordId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        }
+        const data = await response.json();
+        const header = document.getElementById('word-header');
+        header.setAttribute('data-word-id', wordId);
+        const wordListContainer = document.getElementById('word-list');
+        wordListContainer.innerHTML = ''; // очищаем предыдущий список
+
+        if (data) {
+            header.textContent = `Слово: ${data.word} id ${data.id} order ${data.order} — Всего: ${data.context.length}`;
+
+            // Цикл по списку data.context
+            data.context.forEach((item, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index}. ${item}`; // Индекс и значение элемента списка
+                setBgItem(index, listItem)
+                listItem.classList.add('word-item');
+                wordListContainer.appendChild(listItem); // Добавляем элемент в список
+            });
+            } else {
+                wordListContainer.innerHTML = '<li>Нет данных по этому слову</li>';
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки данных:', error);
+        }
+        // Вызываем функцию для добавления обработчиков
+        enableDragAndDrop();
+    }
+
+
 // Добавляем обработчик события для выпадающего списка
 document.getElementById('dropdown').addEventListener('change', async function () {
     const selectedMonth = this.value;  // Получаем выбранное значение (месяц)
@@ -135,9 +169,12 @@ document.getElementById('dropdown').addEventListener('change', async function ()
             data.words.forEach((word, index) => {
                 const listItem = document.createElement('li');
                 listItem.textContent = `${word.order}. ${word.word}`;
-                listItem.classList.add('word-item');  // Добавляем класс для стилей
                 listItem.addEventListener('click', function () {
-                    onWordClick(word.id);  // Вызываем функцию при клике на слово
+                    if (selectedMonth === 'new') {
+                        onNewWordClick(word.id);  // Вызываем другую функцию
+                    } else {
+                        onWordClick(word.id);  // Вызываем стандартную функцию
+                    }
                 });
                 wordList.appendChild(listItem);  // Добавляем слово в список
             });
@@ -176,4 +213,88 @@ document.getElementById('skip-user-btn').addEventListener('click', async () => {
         console.error('Ошибка:', error);
     }
 });
+
+
+
+//let draggedItem = null;  // Хранит элемент, который перетаскивается
+//
+//function enableDragAndDrop() {
+//    const listItems = document.querySelectorAll('#word-list li');
+//
+//    listItems.forEach(item => {
+//        item.setAttribute('draggable', 'true');  // Делаем элементы списка перетаскиваемыми
+//
+//        item.addEventListener('dragstart', function (event) {
+//            draggedItem = event.target;  // Запоминаем элемент
+//            event.target.style.opacity = '0.5';  // Задаём прозрачность
+//        });
+//
+//        item.addEventListener('dragover', function (event) {
+//            event.preventDefault();  // Разрешаем сброс элемента
+//        });
+//
+//        item.addEventListener('drop', function (event) {
+//            event.preventDefault();
+//            if (draggedItem !== event.target) {
+//                const parent = event.target.parentNode;
+//
+//                // Переставляем элементы
+//                parent.insertBefore(draggedItem, event.target.nextSibling);
+//
+//                // Обновляем данные на сервере
+//                updatedContext();
+//            }
+//        });
+//
+//        item.addEventListener('dragend', function () {
+//            draggedItem.style.opacity = '1';  // Восстанавливаем прозрачность
+//            draggedItem = null;  // Сбрасываем перетаскиваемый элемент
+//        });
+//    });
+//}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const wordList = document.getElementById('word-list');
+
+    new Sortable(wordList, {
+        animation: 150,  // Плавная анимация
+        delay: 800,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 15,
+        supportPointer: false,
+        ghostClass: 'sortable-ghost',  // Класс для стилизации перетаскиваемого элемента
+        onEnd: function(evt) {
+            console.log("Элемент перемещён:", evt.item.textContent);
+            updatedContext();  // Вызываем функцию обновления порядка
+        }
+    });
+});
+
+
+// Функция для отправки обновлённого порядка элементов на сервер
+function updatedContext() {
+    const wordId = document.getElementById('word-header').getAttribute('data-word-id');
+    const items = document.querySelectorAll('#word-list li');
+    const updatedContext = Array.from(items).map((item, index) => {
+        return {
+            word_text: item.textContent,
+            new_position: index
+        };
+    });
+
+    console.log('Обновлённый порядок:', updatedContext);  // Для проверки порядка в консоли
+
+// Отправка данных на сервер
+    fetch(`/update-context/${wordId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: updatedContext })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Порядок обновлён на сервере:', data);
+        return onNewWordClick(wordId);  // Правильный вызов функции
+    })
+    .catch(error => console.error('Ошибка при обновлении порядка:', error));
+}
 
