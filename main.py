@@ -100,7 +100,7 @@ async def admin_page(request: Request):
     word_month.append("new")
 
     if curr_word:
-        dict_all = await get_trying_by_word(curr_word.id)
+        dict_all = await get_trying_by_word(curr_word.id, 'uid')
 
         dict_all["word_month"] = word_month
 
@@ -191,9 +191,10 @@ async def get_word(word_id: str):
 
 
 @app.get("/trying/{word_id}")
-async def get_trying(word_id: str):
+async def get_trying(word_id: str, trying_sort: str):
+    print(word_id, trying_sort)
     word_id = int(word_id)
-    dict_all = await get_trying_by_word(word_id)
+    dict_all = await get_trying_by_word(word_id, trying_sort)
     return JSONResponse(dict_all)
 
 

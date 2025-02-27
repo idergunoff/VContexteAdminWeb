@@ -1,5 +1,8 @@
 import json
 import datetime
+from collections import OrderedDict
+
+import numpy as np
 
 from model import *
 
@@ -114,7 +117,7 @@ async def get_versions_tt(trying_id: str, version_sort: str):
     return {"versions": result, "username": user.username, "count_vers": len(versions_tt)}
 
 
-async def get_trying_by_word(word_id: int):
+async def get_trying_by_word(word_id: int, sort: str):
     dict_result = {}
     async with get_session() as session:
         result_u = await session.execute(select(User).options(selectinload(User.coin)).order_by(User.date_register))
@@ -190,11 +193,18 @@ async def get_trying_by_word(word_id: int):
                                              f'{" 💎" + str(len(ha)) if ha else ""}'
                                              f'{" 🌎" + str(len(hc)) if hc else ""}'
                                              f'{" 🖼" if hw else ""}{" 🦎" if ht else ""}{" 📏" if hm else ""}')
-
-                dict_result[u.id]['title'] = (f'📆{u.date_register.strftime("%d-%m-%Y")}\n'
-                                              f'✨{u.coin[0].coin}')
+                try:
+                    dict_result[u.id]['title'] = (f'📆{u.date_register.strftime("%d-%m-%Y")}\n'
+                                              f'✨{u.coin[0].coin}\n')
+                except IndexError:
+                    async with get_session() as session:
+                        session.add(UserCoin(user_id=u.id, coin=521))
+                    dict_result[u.id]['title'] = f'📆{u.date_register.strftime("%d-%m-%Y")}\n'
 
                 dict_result[u.id]['t_id'] = t.id
+                dict_result[u.id]['u_id'] = u.id
+                dict_result[u.id]['date_start'] = t.date_trying
+                dict_result[u.id]['date_done'] = t.date_done
 
                 dict_result[u.id]['color'] = '#bfffbf' if t.done else '#f7faa6'
                 if t.skip:
@@ -213,6 +223,32 @@ async def get_trying_by_word(word_id: int):
                 if t.skip:
                     dict_result[u.id]['color'] = '#ffbfbf'
 
+        if sort == 'start':
+            dict_result = sorted(dict_result.values(), key=lambda x: x['date_start'])
+
+        elif sort == 'done':
+            dict_result = {k: v for k, v in dict_result.items() if v['date_done'] is not None}
+            dict_result = sorted(dict_result.values(), key=lambda x: x['date_done'])
+        elif sort == 'top':
+            dict_result = {k: v for k, v in dict_result.items() if v['date_done'] is not None and v['color'] != '#ffbfbf'}
+            dict_result = await update_dict_for_top(word_id, dict_result)
+            dict_result = sorted(dict_result.values(), key=lambda x: (-x['score'], x['position']))
+            for key in dict_result:
+                key['text'] += f'<br>🏆{key["position"]} 🍬{key["score"]}'
+                key['title'] += f'📦{key["score_vers"]} - 🧭{key["score_time"]} - 💎{key["score_pos"]}\n'
+        else:
+            dict_result = sorted(dict_result.values(), key=lambda item: item['u_id'])
+
+        for key in dict_result:
+            key['date_start'] = key['date_start'].strftime('%d.%m.%Y %H:%M:%S')
+            key['date_done'] = key['date_done'].strftime('%d.%m.%Y %H:%M:%S') if key['date_done'] else None
+            if sort == 'start' or sort == 'uid':
+                key['title'] += f'🔫{key["date_start"]}'
+                if key['date_done']:
+                    key['title'] += f' - 🏁{key["date_done"]}'
+            if sort == 'done' or sort == 'top':
+                key['title'] += f'🔫{key["date_start"]} - 🏁{key["date_done"]}'
+
         dict_all = {
             "word": word.word,
             "date_play": word.date_play.strftime('%d.%m.%Y'),
@@ -220,3 +256,65 @@ async def get_trying_by_word(word_id: int):
         }
 
     return dict_all
+
+
+async def update_dict_for_top(word_id: int, dict_result: dict):
+
+    list_time, list_tuple_time, list_count_vers, list_count_hint, skip_done = await calculate_stat(word_id)
+    for key, value in dict_result.items():
+        async with get_session() as session:
+            t = await session.get(Trying, value['t_id'], options=[selectinload(Trying.versions)])
+        score_vers, score_time, score_pos, user_score = await calc_trying_score(t, list_time, list_count_vers, skip_done)
+
+        dict_result[key]['score_vers'] = score_vers
+        dict_result[key]['score_time'] = score_time
+        dict_result[key]['score_pos'] = score_pos
+        dict_result[key]['score'] = user_score
+        dict_result[key]['position'] = t.position
+
+    return dict_result
+
+
+async def calc_user_value(worst_value, best_value, current_value):
+    """ Возвращает пропорциональное выбранное значение по лучшему и худшему значению """
+    # Проверка на деление на ноль, чтобы избежать ошибок
+    if worst_value == best_value:
+        return 100
+    # Рассчитываем пропорциональное значение
+    proportion = (current_value - worst_value) / (best_value - worst_value)
+    # Приводим к диапазону от 0 до 100
+    proportional_value = int(proportion * 100)
+
+    return proportional_value
+
+
+async def calculate_stat(word_id: int):
+    """ Возвращает списки разницы времени, количества версий и подсказок для удачных попыток для выбранного слова """
+    async with get_session() as session:
+        result_done = await session.execute(select(Trying).options(selectinload(Trying.versions)).filter_by(word_id=word_id, done=True))
+        trying_done = result_done.scalars().all()
+
+        result_skip = await session.execute(select(func.count()).select_from(Trying).filter_by(word_id=word_id, skip=True))
+        skip_done = result_skip.scalar_one()
+
+    if len(trying_done) == 0:
+        return [], [], [], []
+    trying_done = [t for t in trying_done if len(t.versions) > 1]
+    trying_done = [t for t in trying_done if t.skip is False]
+    list_time = [t.date_done - t.date_trying for t in trying_done]
+    list_tuple_time = [(t.date_trying, t.date_done) for t in trying_done]
+    list_count_vers = [len(t.versions) for t in trying_done]
+    list_count_hint = [t.hint for t in trying_done]
+    return list_time, list_tuple_time, list_count_vers, list_count_hint, skip_done
+
+
+async def calc_trying_score(trying, l_time, l_count_vers, skip_done):
+    """ Рассчитывает очки попытки пользователя и добавляет их в таблицу """
+    score_vers = await calc_user_value(np.max(l_count_vers), np.min(l_count_vers), len(trying.versions))
+    score_time = await calc_user_value(np.max(l_time).total_seconds(), np.min(l_time).total_seconds(), (trying.date_done - trying.date_trying).total_seconds())
+    score_pos = await calc_user_value(len(l_time) + skip_done, 1, trying.position)
+    user_score = score_vers + score_time + score_pos - (50 * trying.hint)
+
+    return score_vers, score_time, score_pos, user_score
+
+

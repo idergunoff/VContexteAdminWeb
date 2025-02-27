@@ -71,18 +71,23 @@ function setBgItem(index, listItem) {
     }
 }
 
+// Main
+
+
 function logout() {
     // Выполняем выход
     window.location.href = "/logout";  // Переход на маршрут выхода
 }
 
+// WORD
 
 async function onWordClick(wordId) {
     try {
         // Проверяем, поддерживает ли устройство сенсорный ввод
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints || navigator.msMaxTouchPoints;
+        const tryingSort = document.querySelector('input[name="trying-sort"]:checked').value;
 
-        const response = await fetch(`/trying/${wordId}`);
+        const response = await fetch(`/trying/${wordId}?trying_sort=${tryingSort}`);
         if (!response.ok) {
             throw new Error('Ошибка при загрузке данных');
         }
@@ -95,12 +100,13 @@ async function onWordClick(wordId) {
         if (data.dict_result) {
             header.textContent = `Слово: ${data.word} ${data.date_play} — Всего: ${Object.keys(data.dict_result).length}`;
 
-            for (const [userId, userData] of Object.entries(data.dict_result)) {
+//            for (const [userId, userData] of Object.entries(data.dict_result)) {
+            data.dict_result.forEach((userData, index) => {
                 const listItem = document.createElement('li');
                 if (isTouchDevice) {
-                    listItem.innerHTML = `${userData.text}<br>${userData.title}`;
+                    listItem.innerHTML = `${index}. ${userData.text}<br>${userData.title}`;
                 } else {
-                    listItem.innerHTML = `${userData.text}`;
+                    listItem.innerHTML = `${index}. ${userData.text}`;
                     listItem.setAttribute('title', `${userData.title}`);
                 };
 
@@ -109,7 +115,7 @@ async function onWordClick(wordId) {
 
                 listItem.addEventListener('click', () => loadUserVersions(userData.t_id));
                 userListContainer.appendChild(listItem);
-            }
+            });
         } else {
             userListContainer.innerHTML = '<li>Нет данных по этому слову</li>';
         }
@@ -184,6 +190,18 @@ document.getElementById('dropdown').addEventListener('change', async function ()
     } catch (error) {
         console.error('Ошибка:', error);
     }
+});
+
+
+
+document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const header = document.getElementById('trying-header');
+        const wordId = header.getAttribute('data-word-id');
+        if (wordId) {
+            onWordClick(wordId);
+        }
+    });
 });
 
 

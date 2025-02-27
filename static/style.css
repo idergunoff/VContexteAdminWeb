@@ -3,9 +3,6 @@ form {
     max-width: 300px;
 }
 
-
-
-
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -15,11 +12,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    margin: 10px;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #ddd;
-    width: 95%;
+    padding: 21px;
+    margin: 11px;
+    background-color: #f9f9fa;
+    border-bottom: 2px solid #ddd;
+    width: 96%;
 }
 
 .title {
@@ -56,6 +53,17 @@ body {
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
+
+.btn-column {
+    flex: 1;
+    max-height: 150px;
+    margin: 0 10px;
+    padding: 20px;
+    background-color: #fff9ea;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
 .column h2 {
     text-align: center;
     margin-bottom: 15px;
@@ -134,6 +142,14 @@ li {
 
 
 /* Общие стили для кнопок */
+.btn-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    max-height: 150px;
+}
+
+
 button {
   background-color: #ffb65e; /* Цвет фона кнопки */
   color: white; /* Белый текст */

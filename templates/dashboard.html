@@ -13,16 +13,57 @@
         <button class="logout-button" onclick="logout()">Выйти</button>
     </header>
     <div class="container">
+        <div class="btn-column">
+            <div class="btn-container">
+                <button id="word-remove-btn">RMV</button>
+                <button id="words-back-btn">BACK</button>
+                <button id="delete-word-btn" hidden>Удалить</button>
+                <button id="move-word-btn" hidden>Переместить</button>
+                <button id="reorder-words-btn" hidden>Изменить порядок слов</button>
+                <button id="add-word-btn" hidden>Добавить слово</button>
+            </div>
+
+        </div>
+        <div class="btn-column">
+            <div class="btn-container">
+                <input type="radio" id="radio-uid" name="trying-sort" value="uid" checked>
+                <label for="radio-uid">UID</label>
+                <input type="radio" id="radio-start" name="trying-sort" value="start">
+                <label for="radio-start">START</label>
+                <input type="radio" id="radio-done" name="trying-sort" value="done">
+                <label for="radio-done">DONE</label>
+                <input type="radio" id="radio-top" name="trying-sort" value="top">
+                <label for="radio-top">TOP</label>
+                <br>
+                <button id="control-ai-btn">AI</button>
+                <button id="train-ai-btn">TRAIN</button>
+                <button id="user-rate-btn">RATE</button>
+            </div>
+        </div>
+        <div class="btn-column">
+            <div class="btn-container">
+                <input type="radio" id="radio1" name="version-sort" value="index">
+                <label for="radio1">INDEX</label>
+                <input type="radio" id="radio2" name="version-sort" value="time" checked>
+                <label for="radio2">TIME</label>
+                <br>
+                <input type="radio" id="radio3" name="version-type" value="main" checked>
+                <label for="radio3">MAIN</label>
+                <input type="radio" id="radio4" name="version-type" value="top10">
+                <label for="radio4">TOP10</label>
+                <br>
+                <button id="skip-user-btn">SKIP</button>
+                <button id="graph-vers-btn">TGPH</button>
+                <button id="graph-user-btn">UGPH</button>
+                <button id="first-words-btn">UFW</button>
+                <button id="user-transactions-btn">UTRNS</button>
+            </div>
+        </div>
+    </div>
+    <div class="container">
         <div class="column">
             <h2 id="word-header">Слова</h2>
-            <div>
-                <button id="edit-context-btn">Редактировать список контекста</button>
-                <button id="edit-word-btn">Изменить</button>
-                <button id="delete-word-btn">Удалить</button>
-                <button id="move-word-btn">Переместить</button>
-                <button id="reorder-words-btn">Изменить порядок слов</button>
-                <button id="add-word-btn">Добавить слово</button>
-            </div>
+
             <label for="dropdown">Выберите элемент:</label>
             <select id="dropdown">
                 {% for item in dict_all.word_month %}
@@ -37,7 +78,7 @@
             <h2 id="trying-header">Слово: {{ dict_all.word }} {{dict_all.date_play}} — Всего: {{dict_all.dict_result | length}}</h2>
             <ul id="trying-list">
                 <!-- Перебор пользователей из словаря -->
-                {% for user_id, user_data in dict_all.dict_result.items() %}
+                {% for user_data in dict_all.dict_result %}
                     <li title="{{ user_data.title }}"
                         style="background-color: {{ user_data.color }};"
 
@@ -50,26 +91,7 @@
         </div>
         <div class="column">
             <h2 id="version-header">Версии</h2>
-            <div class="radio-container">
-                <div class="radio-column">
-                    <input type="radio" id="radio1" name="version-sort" value="index">
-                    <label for="radio1">INDEX</label>
-                    <input type="radio" id="radio2" name="version-sort" value="time" checked>
-                    <label for="radio2">TIME</label>
-                </div>
 
-                <div class="radio-column">
-                    <input type="radio" id="radio3" name="version-type" value="main" checked>
-                    <label for="radio3">Основа</label>
-                    <input type="radio" id="radio4" name="version-type" value="top10">
-                    <label for="radio4">Топ-10</label>
-                </div>
-                <div>
-                    <button id="graph-vers-btn">graph version</button>
-                    <button id="graph-user-btn">graph user</button>
-                    <button id="skip-user-btn">skip</button>
-                </div>
-            </div>
             <ul id="version-list">
                 <li>Выберите пользователя для отображения версий</li>
             </ul>
