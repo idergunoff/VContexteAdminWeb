@@ -104,13 +104,13 @@ async function onWordClick(wordId) {
             data.dict_result.forEach((userData, index) => {
                 const listItem = document.createElement('li');
                 if (isTouchDevice) {
-                    listItem.innerHTML = `${index}. ${userData.text}<br>${userData.title}`;
+                    listItem.innerHTML = `${index + 1}. ${userData.text}<br>${userData.title}`;
                 } else {
-                    listItem.innerHTML = `${index}. ${userData.text}`;
+                    listItem.innerHTML = `${index + 1}. ${userData.text}`;
                     listItem.setAttribute('title', `${userData.title}`);
                 };
 
-
+                listItem.setAttribute('data-trying-id', userData.t_id);
                 listItem.style.backgroundColor = userData.color;
 
                 listItem.addEventListener('click', () => loadUserVersions(userData.t_id));
@@ -233,44 +233,6 @@ document.getElementById('skip-user-btn').addEventListener('click', async () => {
 });
 
 
-
-//let draggedItem = null;  // Хранит элемент, который перетаскивается
-//
-//function enableDragAndDrop() {
-//    const listItems = document.querySelectorAll('#word-list li');
-//
-//    listItems.forEach(item => {
-//        item.setAttribute('draggable', 'true');  // Делаем элементы списка перетаскиваемыми
-//
-//        item.addEventListener('dragstart', function (event) {
-//            draggedItem = event.target;  // Запоминаем элемент
-//            event.target.style.opacity = '0.5';  // Задаём прозрачность
-//        });
-//
-//        item.addEventListener('dragover', function (event) {
-//            event.preventDefault();  // Разрешаем сброс элемента
-//        });
-//
-//        item.addEventListener('drop', function (event) {
-//            event.preventDefault();
-//            if (draggedItem !== event.target) {
-//                const parent = event.target.parentNode;
-//
-//                // Переставляем элементы
-//                parent.insertBefore(draggedItem, event.target.nextSibling);
-//
-//                // Обновляем данные на сервере
-//                updatedContext();
-//            }
-//        });
-//
-//        item.addEventListener('dragend', function () {
-//            draggedItem.style.opacity = '1';  // Восстанавливаем прозрачность
-//            draggedItem = null;  // Сбрасываем перетаскиваемый элемент
-//        });
-//    });
-//}
-
 document.addEventListener('DOMContentLoaded', function() {
     const wordList = document.getElementById('word-list');
 
@@ -315,4 +277,102 @@ function updatedContext() {
     })
     .catch(error => console.error('Ошибка при обновлении порядка:', error));
 }
+
+
+async function controlAiListItems() {
+    try {
+        const userListContainer = document.getElementById('trying-list');
+        const listItems = userListContainer.querySelectorAll('li'); // Получаем все элементы списка
+
+        if (listItems.length === 0) {
+            console.log('Список пуст');
+            return;
+        }
+
+        for (const listItem of listItems) {
+            const tryingId = listItem.getAttribute('data-trying-id'); // Получаем data-trying-id
+
+            if (!tryingId) {
+                console.warn(`Пропущен элемент без атрибута data-trying-id`);
+                continue;
+            }
+
+            // Отправляем запрос на сервер
+            const response = await fetch(`/trying/control_ai/${tryingId}`);
+            if (!response.ok) {
+                throw new Error(`Ошибка при обновлении данных для tryingId: ${tryingId}`);
+            }
+
+            const data = await response.json(); // Получаем ответ от сервера
+            const newValue = data.text || 'Нет данных'; // Используем значение из ответа или placeholder
+
+            // Добавляем новое значение в элемент списка
+            listItem.innerHTML += `<br>${newValue}`;
+        }
+    } catch (error) {
+        console.error('Ошибка при обновлении списка:', error);
+    }
+}
+
+
+// Привязываем функцию к кнопке
+document.getElementById('control-ai-btn').addEventListener('click', controlAiListItems);
+
+
+document.getElementById('graph-vers-btn').addEventListener('click', async () => {
+    const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+
+    try {
+        window.open(`/graph_vers/${tryingId}`, '_blank');
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить график');
+    }
+});
+
+document.getElementById('graph-user-btn').addEventListener('click', async () => {
+    const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+
+    try {
+        window.open(`/graph_trying/${tryingId}`, '_blank');
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить график');
+    }
+});
+
+
+document.getElementById('first-words-btn').addEventListener('click', async () => {
+    const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+    try {
+        const response = await fetch(`/first_word/${tryingId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        }
+        const data = await response.json();
+
+        const versionList = document.getElementById('version-list');
+        versionList.innerHTML = ''; // Очищаем предыдущий список
+
+        if (data) {
+            const header = document.getElementById('version-header')
+            header.textContent = `${data.statistics}`;
+
+            data.result.forEach((userData, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `${userData.text}`;
+
+                listItem.style.backgroundColor = userData.color;
+
+                versionList.appendChild(listItem);
+            });
+        } else {
+            userListContainer.innerHTML = '<li>Нет данных по этому слову</li>';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
+});
 

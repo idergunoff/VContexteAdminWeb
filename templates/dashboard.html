@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Главная страница</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 </head>
 <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -75,16 +77,19 @@
             </ul>
         </div>
         <div class="column">
-            <h2 id="trying-header">Слово: {{ dict_all.word }} {{dict_all.date_play}} — Всего: {{dict_all.dict_result | length}}</h2>
+            <h2 id="trying-header" data-word-id="{{ dict_all.word_id }}">Слово: {{ dict_all.word }} {{dict_all.date_play}} — Всего: {{dict_all.dict_result | length}}</h2>
             <ul id="trying-list">
                 <!-- Перебор пользователей из словаря -->
                 {% for user_data in dict_all.dict_result %}
-                    <li title="{{ user_data.title }}"
+                    <li data-trying-id="{{ user_data.t_id }}"
+
+                        title="{{ user_data.title }}"
+
                         style="background-color: {{ user_data.color }};"
 
                         onclick="loadUserVersions('{{ user_data.t_id }}')">
 
-                        {{ user_data.text | safe }}
+                        {{ loop.index}}. {{ user_data.text | safe }}
                     </li>
                 {% endfor %}
             </ul>

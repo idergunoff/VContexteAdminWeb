@@ -1,6 +1,7 @@
 import datetime
 import calendar
 import json
+import os
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -13,11 +14,15 @@ from auth import authenticate_user, create_access_token, oauth2_scheme
 
 from pydantic import BaseModel
 from typing import List
+import pickle
+
 
 from word import router as word_router
 
 from model import *
-from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word
+from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, draw_graph_user, \
+    graph_vers_plotly, get_first_word_by_user
+from control_ai import check_control_al
 
 app = FastAPI()
 
@@ -26,6 +31,14 @@ app.include_router(word_router, prefix="/word", tags=["Word"])
 # Подключение статики и шаблонизатора
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+
+# Эта функция будет выполнена при запуске приложения
+@app.on_event("startup")
+async def load_model():
+    with open('control/control_model.pkl', 'rb') as f:
+        app.state.control_model = pickle.load(f)  # Загружаем модель и сохраняем в app.state
 
 
 @app.middleware("http")
@@ -231,3 +244,49 @@ async def update_context(word_id: int, context: WordContextUpdate):
         word.context = json.dumps(new_context)
 
     return {"message": f"Word {word_id} updated successfully", "context": new_context}
+
+
+@app.get("/trying/control_ai/{trying_id}")
+async def get_control_ai(trying_id):
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).filter_by(id=int(trying_id)))
+        trying = result_t.scalar_one()
+
+    if not trying.done:
+        return {'text': '😴'}
+
+    model = app.state.control_model  # Получаем уже загруженную модель из app.state
+
+    mark, prob = await check_control_al(trying, model)
+
+    dict_result = {'text': f'❤️ {str(round(prob[0], 3))}/{str(round(prob[1], 3))}'} if mark else {'text': f'☠️ {str(round(prob[0], 3))}/{str(round(prob[1], 3))}'}
+    return dict_result
+
+
+@app.get("/graph_vers/{trying_id}")
+async def get_graph_vers(trying_id):
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).filter_by(id=int(trying_id)))
+        trying = result_t.scalar_one()
+
+    chart_html = await graph_vers_plotly(trying)
+    return HTMLResponse(content=chart_html, status_code=200)
+
+
+@app.get("/graph_trying/{trying_id}")
+async def get_graph_trying(trying_id):
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).filter_by(id=int(trying_id)))
+        trying = result_t.scalar_one()
+
+    chart_html = await draw_graph_user(trying.user_id)
+    return HTMLResponse(content=chart_html, status_code=200)
+
+@app.get("/first_word/{trying_id}")
+async def get_first_word(trying_id):
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).filter_by(id=int(trying_id)))
+        trying = result_t.scalar_one()
+
+        data = await get_first_word_by_user(trying.user_id)
+        return data
