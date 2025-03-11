@@ -21,7 +21,7 @@ from word import router as word_router
 
 from model import *
 from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, draw_graph_user, \
-    graph_vers_plotly, get_first_word_by_user
+    graph_vers_plotly, get_first_word_by_user, check_word_facts
 from control_ai import check_control_al
 
 app = FastAPI()
@@ -180,7 +180,12 @@ async def get_month_word(month: str):
             result = await session.execute(select(Word.id, Word.word, Word.order).filter(Word.order != 0).order_by(Word.order))
             words = result.all()
 
-            return JSONResponse(content={"words": [{"id": word[0], "word": word[1], "order": word[2]} for word in words]})
+            return JSONResponse(content={"words":
+                                             [{"id": word[0],
+                                               "word": word[1],
+                                               "order": word[2],
+                                               "fact": await check_word_facts(word[0])
+                                               } for word in words]})
         else:
             date_month = datetime.datetime.strptime(month, "%m %Y")
             _, last_day = calendar.monthrange(date_month.year, date_month.month)
@@ -190,7 +195,12 @@ async def get_month_word(month: str):
             ).order_by(Word.date_play))
             words = result.all()
 
-            return JSONResponse(content={"words": [{"id": word[0], "word": word[1], "order": word[2].strftime("%d.%m.%Y")} for word in words]})
+            return JSONResponse(content={"words":
+                                             [{"id": word[0],
+                                               "word": word[1],
+                                               "order": word[2].strftime("%d.%m.%Y"),
+                                               "fact": await check_word_facts(word[0])
+                                               } for word in words]})
 
 
 @app.get("/word/{word_id}")
@@ -204,10 +214,17 @@ async def get_word(word_id: str):
 
 
 @app.get("/trying/{word_id}")
-async def get_trying(word_id: str, trying_sort: str):
-    print(word_id, trying_sort)
+async def get_trying(word_id: str, trying_sort: str, get_context: int):
     word_id = int(word_id)
+
     dict_all = await get_trying_by_word(word_id, trying_sort)
+    if get_context:
+        async with get_session() as session:
+            result_w = await session.execute(select(Word).filter_by(id=word_id))
+            word = result_w.scalars().first()
+
+        dict_word = {"id": word.id, "word": word.word, "context": json.loads(word.context), "order": word.order}
+        dict_all["word_context"] = dict_word
     return JSONResponse(dict_all)
 
 
@@ -222,8 +239,9 @@ async def skip_trying(trying_id: int):
 
             # Переключаем флаг skip
             trying.skip = not trying.skip
+            color = '#ffbfbf' if trying.skip else '#bfffbf'
 
-        return {"message": f"Trying {trying_id} updated successfully", "skip": trying.skip}
+        return {"message": f"Trying {trying_id} updated successfully", "skip": trying.skip, "trying_id": trying_id, "color": color}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -252,14 +270,34 @@ async def get_control_ai(trying_id):
         result_t = await session.execute(select(Trying).filter_by(id=int(trying_id)))
         trying = result_t.scalar_one()
 
-    if not trying.done:
-        return {'text': '😴'}
+        if not trying.done:
+            return {'text': '😴'}
 
-    model = app.state.control_model  # Получаем уже загруженную модель из app.state
+        result_rc = await session.execute(select(ResultControl).filter_by(trying_id=trying.id))
+        result_control = result_rc.scalar_one_or_none()
 
-    mark, prob = await check_control_al(trying, model)
+        if not result_control:
+            result_control = ResultControl(trying_id=trying.id, word_id=trying.word_id)
+            session.add(result_control)
+            await session.commit()
 
-    dict_result = {'text': f'❤️ {str(round(prob[0], 3))}/{str(round(prob[1], 3))}'} if mark else {'text': f'☠️ {str(round(prob[0], 3))}/{str(round(prob[1], 3))}'}
+        if result_control.done:
+            if result_control.result:
+                dict_result = {'text': f'❤️ {str(round(result_control.probability, 3))}'}
+            else:
+                dict_result = {'text': f'☠️ {str(round(result_control.probability, 3))}'}
+
+        else:
+            model = app.state.control_model  # Получаем уже загруженную модель из app.state
+
+            mark, prob = await check_control_al(trying, model)
+
+            result_control.done = True
+            result_control.result = mark
+            result_control.probability = prob[0]
+
+            dict_result = {'text': f'❤️ {str(round(prob[0], 3))}/{str(round(prob[1], 3))}'} if mark else {'text': f'☠️ {str(round(prob[0], 3))}/{str(round(prob[1], 3))}'}
+
     return dict_result
 
 
@@ -281,6 +319,7 @@ async def get_graph_trying(trying_id):
 
     chart_html = await draw_graph_user(trying.user_id)
     return HTMLResponse(content=chart_html, status_code=200)
+
 
 @app.get("/first_word/{trying_id}")
 async def get_first_word(trying_id):

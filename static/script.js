@@ -81,17 +81,39 @@ function logout() {
 
 // WORD
 
-async function onWordClick(wordId) {
+async function onWordClick(wordId, getContext) {
     try {
         // Проверяем, поддерживает ли устройство сенсорный ввод
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints || navigator.msMaxTouchPoints;
         const tryingSort = document.querySelector('input[name="trying-sort"]:checked').value;
 
-        const response = await fetch(`/trying/${wordId}?trying_sort=${tryingSort}`);
+        const response = await fetch(`/trying/${wordId}?trying_sort=${tryingSort}&get_context=${getContext}`);
         if (!response.ok) {
             throw new Error('Ошибка при загрузке данных');
         }
+
         const data = await response.json();
+
+        if (getContext == 1) {
+            const headerWord = document.getElementById('word-header');
+            headerWord.setAttribute('data-word-id', wordId);
+            const wordListContainer = document.getElementById('word-list');
+            wordListContainer.innerHTML = ''; // очищаем предыдущий список
+
+            if (data.word_context) {
+                headerWord.textContent = `Слово: ${data.word_context.word} id ${data.word_context.id} order ${data.date_play} — Всего: ${data.word_context.context.length}`;
+
+
+                // Цикл по списку data.context
+                data.word_context.context.forEach((item, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${index}. ${item}`; // Индекс и значение элемента списка
+                    setBgItem(index, listItem)
+                    listItem.classList.add('word-item');
+                    wordListContainer.appendChild(listItem); // Добавляем элемент в список
+                });
+            }
+        }
         const header = document.getElementById('trying-header');
         header.setAttribute('data-word-id', wordId);
         const userListContainer = document.getElementById('trying-list');
@@ -159,10 +181,7 @@ async function onNewWordClick(wordId) {
     }
 
 
-// Добавляем обработчик события для выпадающего списка
-document.getElementById('dropdown').addEventListener('change', async function () {
-    const selectedMonth = this.value;  // Получаем выбранное значение (месяц)
-
+async function wordsByMonth(selectedMonth) {
     try {
         const response = await fetch(`/month_word/${selectedMonth}`);  // Запрос к серверу
         if (!response.ok) throw new Error('Ошибка при загрузке данных');
@@ -174,12 +193,12 @@ document.getElementById('dropdown').addEventListener('change', async function ()
         if (data.words.length > 0) {
             data.words.forEach((word, index) => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `${word.order}. ${word.word}`;
+                listItem.textContent = `${word.order}. ${word.fact}${word.word}`;
                 listItem.addEventListener('click', function () {
                     if (selectedMonth === 'new') {
                         onNewWordClick(word.id);  // Вызываем другую функцию
                     } else {
-                        onWordClick(word.id);  // Вызываем стандартную функцию
+                        onWordClick(word.id, 1);  // Вызываем стандартную функцию
                     }
                 });
                 wordList.appendChild(listItem);  // Добавляем слово в список
@@ -190,8 +209,20 @@ document.getElementById('dropdown').addEventListener('change', async function ()
     } catch (error) {
         console.error('Ошибка:', error);
     }
+}
+
+
+// Добавляем обработчик события для выпадающего списка
+document.getElementById('dropdown').addEventListener('change', async function () {
+    const selectedMonth = this.value;  // Получаем выбранное значение (месяц)
+    wordsByMonth(selectedMonth);
 });
 
+
+document.getElementById('words-back-btn').addEventListener('click', async () => {
+    const selectedMonth = document.getElementById('dropdown').value;
+    wordsByMonth(selectedMonth);
+});
 
 
 document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
@@ -199,10 +230,15 @@ document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
         const header = document.getElementById('trying-header');
         const wordId = header.getAttribute('data-word-id');
         if (wordId) {
-            onWordClick(wordId);
+            onWordClick(wordId, 0);
         }
     });
 });
+
+
+function findListItemByTryingId(tryingId) {
+    return document.querySelector(`li[data-trying-id="${tryingId}"]`);
+}
 
 
 document.getElementById('skip-user-btn').addEventListener('click', async () => {
@@ -225,8 +261,10 @@ document.getElementById('skip-user-btn').addEventListener('click', async () => {
         const result = await response.json();
         console.log('Ответ сервера:', result);
 
-        // После успешного выполнения вызываем loadUserVersions
-        await onWordClick(wordId);
+        if (result) {
+            const listItem = findListItemByTryingId(result.trying_id);
+            listItem.style.backgroundColor = result.color;
+        }
     } catch (error) {
         console.error('Ошибка:', error);
     }
@@ -264,7 +302,7 @@ function updatedContext() {
 
     console.log('Обновлённый порядок:', updatedContext);  // Для проверки порядка в консоли
 
-// Отправка данных на сервер
+    // Отправка данных на сервер
     fetch(`/update-context/${wordId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

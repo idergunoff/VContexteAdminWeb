@@ -814,3 +814,23 @@ async def get_first_word_by_user(user_id):
         data['result'] = list_result
         return data
 
+
+async def check_word_facts(word_id):
+    async with get_session() as session:
+        result_f = await session.execute(select(WordFact).filter_by(word_id=word_id))
+        word_facts = result_f.scalars().all()
+
+        result_h = await session.execute(select(HintPixel).filter_by(word_id=word_id))
+        hint_pixel = result_h.scalars().first()
+
+        types = set(fact.type for fact in word_facts)
+        fact = ''
+        if 'text' in types:
+            result_tf = await session.execute(select(WordFact).filter_by(word_id=word_id, type='text'))
+            text_fact = result_tf.scalar_one()
+
+            if text_fact.fact == '🤖':
+                fact = '🤖'
+            else:
+                fact ='📜'
+    return ''.join([fact, '🖼' if 'photo' in types else '', '🖌' if hint_pixel else ''])

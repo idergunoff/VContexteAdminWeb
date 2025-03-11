@@ -90,6 +90,7 @@ class Word(Base):
     facts = relationship('WordFact', back_populates='word')
     stats = relationship('WordStat', back_populates='word')
     pixel = relationship('HintPixel', back_populates='word')
+    results = relationship('ResultControl', back_populates='word')
 
 
 class WordStat(Base):
@@ -128,6 +129,7 @@ class Trying(Base):
     versions = relationship('Version', back_populates='trying')
     userscore = relationship('UserScore', back_populates='trying')
     hints_main_word = relationship('HintMainWord', back_populates='trying')
+    results = relationship('ResultControl', back_populates='trying')
 
 
 class TryingTopTen(Base):
@@ -329,6 +331,19 @@ class UserEveryDay(Base):
 
     user = relationship('User', back_populates='every_day')
 
+
+class ResultControl(Base):
+    __tablename__ = 'result_control'
+
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer, ForeignKey('word.id'))
+    trying_id = Column(Integer, ForeignKey('trying.id'))
+    done = Column(Boolean, default=False)
+    result = Column(Boolean)
+    probability = Column(Float)
+
+    word = relationship('Word', back_populates='results')
+    trying = relationship('Trying', back_populates='results')
 
 # Base.metadata.create_all(engine)
 # Асинхронная функция для создания таблиц
