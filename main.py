@@ -329,3 +329,15 @@ async def get_first_word(trying_id):
 
         data = await get_first_word_by_user(trying.user_id)
         return data
+
+
+@app.get("/reset_ai/{word_id}")
+async def get_reset_ai(word_id):
+    async with get_session() as session:
+        result = await session.execute(select(ResultControl).filter_by(word_id=int(word_id)))
+        result_controls = result.scalars().all()
+
+        for rc in result_controls:
+            rc.done = False
+
+    return {"message": f"ResultControl {word_id} reset successfully"}

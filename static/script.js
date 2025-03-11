@@ -414,3 +414,19 @@ document.getElementById('first-words-btn').addEventListener('click', async () =>
     }
 });
 
+document.getElementById('reset-ai-btn').addEventListener('click', async () => {
+    const header = document.getElementById('trying-header');
+    const wordId = header.getAttribute('data-word-id');
+
+    try {
+        const response = await fetch(`/reset_ai/${wordId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        } else {
+            onWordClick(wordId, 0)
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
+});
