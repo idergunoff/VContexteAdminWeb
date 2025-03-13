@@ -246,8 +246,30 @@ async def skip_trying(trying_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/user_alpha/{trying_id}")
+async def set_user_alpha(trying_id):
+    try:
+        async with get_session() as session:
+            result = await session.execute(select(Trying).filter_by(id=int(trying_id)))
+            trying = result.scalar_one_or_none()
+
+            if trying:
+                result_ua = await session.execute(select(UserAlpha).filter_by(user_id=trying.user_id))
+                user_alpha = result_ua.scalar_one_or_none()
+                if user_alpha:
+                    await session.delete(user_alpha)
+                else:
+                    user_alpha = UserAlpha(user_id=trying.user_id)
+                    session.add(user_alpha)
+
+        return {"message": f"User id {trying.user_id} updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class WordContextUpdate(BaseModel):
     order: List[dict]
+
 
 @app.post("/update-context/{word_id}")
 async def update_context(word_id: int, context: WordContextUpdate):

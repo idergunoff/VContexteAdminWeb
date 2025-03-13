@@ -41,6 +41,7 @@ class User(Base):
     coin = relationship('UserCoin', back_populates='user')
     transaction = relationship('UserTransaction', back_populates='user')
     every_day = relationship('UserEveryDay', back_populates='user')
+    alpha = relationship('UserAlpha', back_populates='user')
 
 
 class UserCoin(Base):
@@ -344,6 +345,16 @@ class ResultControl(Base):
 
     word = relationship('Word', back_populates='results')
     trying = relationship('Trying', back_populates='results')
+
+
+class UserAlpha(Base):
+    __tablename__ = 'user_alpha'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'))
+
+    user = relationship('User', back_populates='alpha')
+
 
 # Base.metadata.create_all(engine)
 # Асинхронная функция для создания таблиц

@@ -125,6 +125,10 @@ async def get_trying_by_word(word_id: int, sort: str):
         result_u = await session.execute(select(User).options(selectinload(User.coin)).order_by(User.date_register))
         users = result_u.scalars().all()
 
+        result_ua = await session.execute(select(UserAlpha))
+        users_alpha = result_ua.scalars().all()
+        list_alpha = [user_alpha.user_id for user_alpha in users_alpha]
+
         result_w = await session.execute(select(Word).filter_by(id=word_id))
         word = result_w.scalar_one_or_none()
 
@@ -187,9 +191,11 @@ async def get_trying_by_word(word_id: int, sort: str):
                 hw = next((i for i in hint_word_pixel if i.user_id == u.id), None)
                 ht = next((i for i in hint_word_tail if i.user_id == u.id), None)
                 hm = next((i for i in hint_word_metr if i.user_id == u.id), None)
+                ua = u.id in list_alpha
 
                 dict_result[u.id] = {}
-                dict_result[u.id]['text'] = (f'{"🕺" if ud else ""}'
+                dict_result[u.id]['text'] = (f'{"👑" if ua else ""}'
+                                             f'{"🕺" if ud else ""}'
                                              f'<b>{u.username}</b> (id {u.id}) - 📦{len(t.versions)}'
                                              f'{" 🧿" + str(t.hint) if t.hint > 0 else ""}'
                                              f'{" 💎" + str(len(ha)) if ha else ""}'

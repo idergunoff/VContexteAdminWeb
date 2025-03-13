@@ -271,6 +271,24 @@ document.getElementById('skip-user-btn').addEventListener('click', async () => {
 });
 
 
+document.getElementById('alpha-user-btn').addEventListener('click', async () => {
+        const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+        const wordId = document.getElementById('trying-header').getAttribute('data-word-id');
+
+    try {
+        const response = await fetch(`/user_alpha/${tryingId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        } else {
+            onWordClick(wordId, 0)
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
+});
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const wordList = document.getElementById('word-list');
 
