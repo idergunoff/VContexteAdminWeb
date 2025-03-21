@@ -79,7 +79,7 @@
             </ul>
         </div>
         <div class="column">
-            <h2 id="trying-header" data-word-id="{{ dict_all.word_id }}">Слово: {{ dict_all.word }} {{dict_all.date_play}} — Всего: {{dict_all.dict_result | length}}</h2>
+            <h3 id="trying-header" data-word-id="{{ dict_all.word_id }}">{{ dict_all.text_header | safe }}</h3>
             <ul id="trying-list">
                 <!-- Перебор пользователей из словаря -->
                 {% for user_data in dict_all.dict_result %}

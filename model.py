@@ -24,6 +24,7 @@ async def get_session():
 
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = 'user'
 
@@ -42,6 +43,8 @@ class User(Base):
     transaction = relationship('UserTransaction', back_populates='user')
     every_day = relationship('UserEveryDay', back_populates='user')
     alpha = relationship('UserAlpha', back_populates='user')
+    referral_code = relationship('ReferralCode', back_populates='user')
+    referral_user = relationship('ReferralUser', back_populates='user')
 
 
 class UserCoin(Base):
@@ -354,6 +357,31 @@ class UserAlpha(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
 
     user = relationship('User', back_populates='alpha')
+
+
+class ReferralCode(Base):
+    __tablename__ = 'referral_code'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'))
+    code = Column(String, unique=True)
+    date_create = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+
+    # Связь с пользователем, которому принадлежит код
+    user = relationship("User", back_populates="referral_code")
+    referral_user = relationship("ReferralUser", back_populates="referral_code")
+
+
+class ReferralUser(Base):
+    __tablename__ = 'referral_user'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'))
+    referral_code_id = Column(Integer, ForeignKey('referral_code.id'))
+
+    user = relationship('User', back_populates='referral_user')
+    referral_code = relationship('ReferralCode', back_populates='referral_user')
 
 
 # Base.metadata.create_all(engine)

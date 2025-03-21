@@ -2,7 +2,6 @@ from func import *
 from model import *
 
 from xgboost import XGBClassifier
-from scipy.stats import kurtosis, skew
 
 
 async def check_control_al(curr_trying, model, trying_versions=False):

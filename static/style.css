@@ -19,6 +19,10 @@ body {
     width: 96%;
 }
 
+#trying-header div {
+    margin-bottom: 5px;
+}
+
 .title {
     margin: 0;
     font-size: 24px;
@@ -48,7 +52,7 @@ body {
 .column {
     flex: 1;
     margin: 0 10px;
-    padding: 20px;
+    padding: 10px 20px;
     background-color: #f4f4f9;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -64,9 +68,9 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.column h2 {
-    text-align: center;
-    margin-bottom: 15px;
+.column h3 {
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 /* Стиль для контейнера выпадающего списка */

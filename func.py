@@ -3,10 +3,18 @@ import datetime
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from scipy.stats import kurtosis, skew
 
 import numpy as np
 
 from model import *
+
+
+async def get_username(user_id: int):
+    async with get_session() as session:
+        result = await session.execute(select(User).filter_by(id=user_id))
+        user = result.scalar_one()
+        return user.username
 
 
 def get_bg_color(index: int):
@@ -145,6 +153,12 @@ async def get_trying_by_word(word_id: int, sort: str):
             ))
         user_day = result_ud.scalars().all()
 
+        result_rc = await session.execute(select(ReferralCode).options(selectinload(ReferralCode.referral_user)))
+        ref_code = result_rc.scalars().all()
+
+        result_ru = await session.execute(select(ReferralUser).options(selectinload(ReferralUser.referral_code)))
+        ref_user = result_ru.scalars().all()
+
         result_ttt = await session.execute(
             select(TryingTopTen)
             .options(selectinload(TryingTopTen.vtt))
@@ -176,22 +190,37 @@ async def get_trying_by_word(word_id: int, sort: str):
             .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'metr'))
         hint_word_metr = result_hwm.scalars().all()
 
+        result_hvb = await session.execute(
+            select(Trying).join(HintMainWord)
+            .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'bomb'))
+        hint_word_bomb = result_hvb.scalars().all()
+
         result_htt = await session.execute(
             select(TryingTopTen).join(HintTopTen)
             .filter(TryingTopTen.word_id == word_id))
         hint_top_ten = result_htt.scalars().all()
 
+    count_user, count_done, count_tt_done, count_new_user, count_not_hint, list_count_vers = 0, 0, 0, 0, 0, []
     if word:
         for u in users:
             t = next((t for t in tryings if t.user_id == u.id), None)
             if t:
+                count_user += 1
                 ud = next((i for i in user_day if i.id == u.id), None)
                 ha = [i for i in hint_allusion if i.user_id == u.id]
                 hc = [i for i in hint_center if i.user_id == u.id]
                 hw = next((i for i in hint_word_pixel if i.user_id == u.id), None)
                 ht = next((i for i in hint_word_tail if i.user_id == u.id), None)
                 hm = next((i for i in hint_word_metr if i.user_id == u.id), None)
+                hb = next((i for i in hint_word_bomb if i.user_id == u.id), None)
                 ua = u.id in list_alpha
+                rc = next((i for i in ref_code if i.user_id == u.id), None)
+                ru = next((i for i in ref_user if i.user_id == u.id), None)
+
+                if not t.hint and not ha and not hc and not hw and not ht and not hm and not hb:
+                    count_not_hint += 1
+                if ud:
+                    count_new_user += 1
 
                 dict_result[u.id] = {}
                 dict_result[u.id]['text'] = (f'{"👑" if ua else ""}'
@@ -200,10 +229,13 @@ async def get_trying_by_word(word_id: int, sort: str):
                                              f'{" 🧿" + str(t.hint) if t.hint > 0 else ""}'
                                              f'{" 💎" + str(len(ha)) if ha else ""}'
                                              f'{" 🌎" + str(len(hc)) if hc else ""}'
-                                             f'{" 🖼" if hw else ""}{" 🦎" if ht else ""}{" 📏" if hm else ""}')
+                                             f'{" 🖼" if hw else ""}{" 🦎" if ht else ""}{" 📏" if hm else ""}'
+                                             f'{" 💣" if hb else ""}')
                 try:
                     dict_result[u.id]['title'] = (f'📆{u.date_register.strftime("%d-%m-%Y")}\n'
-                                              f'✨{u.coin[0].coin}\n')
+                                                  f'✨{u.coin[0].coin}\n'
+                                                  f'{"👥" + str(len(rc.referral_user)) if rc else ""}'
+                                                  f'{"🔗" + await get_username(ru.referral_code.user_id) if ru else ""}\n')
                 except IndexError:
                     async with get_session() as session:
                         session.add(UserCoin(user_id=u.id, coin=521))
@@ -215,6 +247,10 @@ async def get_trying_by_word(word_id: int, sort: str):
                 dict_result[u.id]['date_done'] = t.date_done
 
                 dict_result[u.id]['color'] = '#bfffbf' if t.done else '#f7faa6'
+                if t.done:
+                    count_done += 1
+                    if not t.skip:
+                        list_count_vers.append(len(t.versions))
                 if t.skip:
                     dict_result[u.id]['color'] = '#ffbfbf'
             else:
@@ -227,6 +263,7 @@ async def get_trying_by_word(word_id: int, sort: str):
                                               f' {" 🍤" if ht else ""}')
                 if tt.done:
                     dict_result[u.id]["color"] = '#45ece7'
+                    count_tt_done += 1
 
                 if t.skip:
                     dict_result[u.id]['color'] = '#ffbfbf'
@@ -256,11 +293,17 @@ async def get_trying_by_word(word_id: int, sort: str):
                     key['title'] += f' - 🏁{key["date_done"]}'
             if sort == 'done' or sort == 'top':
                 key['title'] += f'🔫{key["date_start"]} - 🏁{key["date_done"]}'
-
+        min_vers, med_vers, skew_vers, kurt_vers = (round(np.min(list_count_vers), 2), round(np.median(list_count_vers), 2),
+                                                    round(skew(list_count_vers), 2), round(kurtosis(list_count_vers), 2))
+        text_header = (f'<div>{word.word} {word.date_play.strftime("%d.%m.%Y")}</div>'
+                       f'<div>🙂{count_user} - 🎯{count_done} - 🏆{count_tt_done}</div>'
+                       f'<div>🆕{count_new_user} - 🚫💡{count_not_hint}</div>'
+                       f'<div>🔢{min_vers}/{med_vers} - 📈{skew_vers}/{kurt_vers}</div>')
         dict_all = {
             "word": word.word,
             "date_play": word.date_play.strftime('%d.%m.%Y'),
             "word_id": word.id,
+            "text_header": text_header,
             "dict_result": dict_result
         }
 

@@ -120,7 +120,7 @@ async function onWordClick(wordId, getContext) {
         userListContainer.innerHTML = ''; // очищаем предыдущий список
 
         if (data.dict_result) {
-            header.textContent = `Слово: ${data.word} ${data.date_play} — Всего: ${Object.keys(data.dict_result).length}`;
+            header.innerHTML = data.text_header;
 
 //            for (const [userId, userData] of Object.entries(data.dict_result)) {
             data.dict_result.forEach((userData, index) => {
