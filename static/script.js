@@ -400,6 +400,32 @@ document.getElementById('graph-user-btn').addEventListener('click', async () => 
 });
 
 
+document.getElementById('trying-graph-btn').addEventListener('click', async () => {
+    const wordId = document.getElementById('trying-header').getAttribute('data-word-id');
+
+    try {
+        window.open(`/graph_word/${wordId}`, '_blank');
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить график');
+    }
+});
+
+
+document.getElementById('trying-distr-btn').addEventListener('click', async () => {
+    const wordId = document.getElementById('trying-header').getAttribute('data-word-id');
+
+    try {
+        window.open(`/graph_distr_trying/${wordId}`, '_blank');
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить график');
+    }
+});
+
+
 document.getElementById('first-words-btn').addEventListener('click', async () => {
     const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
     try {

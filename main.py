@@ -20,8 +20,8 @@ import pickle
 from word import router as word_router
 
 from model import *
-from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, draw_graph_user, \
-    graph_vers_plotly, get_first_word_by_user, check_word_facts
+from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user, check_word_facts
+from graph import graph_vers_plotly, draw_graph_user, draw_graph_word, draw_distr_trying
 from control_ai import check_control_al
 
 app = FastAPI()
@@ -341,6 +341,21 @@ async def get_graph_trying(trying_id):
 
     chart_html = await draw_graph_user(trying.user_id)
     return HTMLResponse(content=chart_html, status_code=200)
+
+
+@app.get("/graph_word/{word_id}")
+async def get_graph_word(word_id):
+    chart_html = await draw_graph_word(int(word_id))
+    return HTMLResponse(content=chart_html, status_code=200)
+
+
+
+
+@app.get("/graph_distr_trying/{word_id}")
+async def get_graph_distr_trying(word_id):
+    chart_html = await draw_distr_trying(int(word_id))
+    return HTMLResponse(content=chart_html, status_code=200)
+
 
 
 @app.get("/first_word/{trying_id}")

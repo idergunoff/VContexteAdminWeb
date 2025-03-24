@@ -42,13 +42,17 @@ body {
 .logout-button:hover {
     background-color: #d32f2f;
 }
+/* Адаптивный контейнер */
 .container {
     display: flex;
     justify-content: space-between;
-    width: 90%;
-    margin: 20px auto;
-    gap: 20px;
+    width: 95%;
+    margin: 10px auto;
+    gap: 10px;
+    flex-wrap: wrap; /* Позволяет переносить блоки на мобильных устройствах */
 }
+
+
 .column {
     flex: 1;
     margin: 0 10px;
@@ -58,11 +62,12 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+/* Адаптивные колонки */
 .btn-column {
     flex: 1;
-    max-height: 150px;
-    margin: 0 10px;
-    padding: 20px;
+    min-width: 250px; /* Минимальная ширина для колонки */
+    margin: 0 5px 10px;
+    padding: 10px;
     background-color: #fff9ea;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -145,27 +150,30 @@ li {
 }
 
 
-/* Общие стили для кнопок */
+/* Улучшенный контейнер для кнопок */
 .btn-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* На мобильных устройствах лучше располагать в строку */
     flex-wrap: wrap;
-    max-height: 150px;
+    gap: 5px; /* Промежуток между кнопками */
+    justify-content: center; /* Центрируем кнопки */
 }
 
 
+/* Адаптивные стили для кнопок */
 button {
-  background-color: #ffb65e; /* Цвет фона кнопки */
-  color: white; /* Белый текст */
-  border: none; /* Убираем обводку */
-  border-radius: 8px; /* Скругленные углы */
-  padding: 8px 16px; /* Отступы внутри кнопки (меньше) */
-  font-size: 14px; /* Размер шрифта (меньше) */
-  cursor: pointer; /* Указатель в виде руки */
-  transition: all 0.3s ease; /* Плавный переход при наведении */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Легкая тень */
-  margin-right: 10px; /* Отступ между кнопками */
-  margin-bottom: 10px; /* Отступ между строками кнопок */
+    background-color: #ffb65e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px; /* Уменьшаем отступы на мобильных */
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 3px; /* Уменьшаем отступы между кнопками */
+    max-width: 100%; /* Предотвращаем выход за границы */
+    white-space: nowrap; /* Предотвращаем перенос текста кнопки */
 }
 
 button:hover {
@@ -258,3 +266,43 @@ input[type="radio"] + label:hover::before {
 
 
 
+/* Медиа-запрос для мобильных устройств */
+@media (max-width: 768px) {
+    .container {
+        /* flex-direction: column; /* Переключаемся на вертикальное расположение на малых экранах */
+        width: 98%;
+        margin: 5px auto;
+        gap: 5px;
+    }
+
+    .btn-column, .column {
+        margin: 0 0 10px;
+        padding: 10px;
+        min-width: auto; /* Убираем минимальную ширину */
+        /*width: 100%; /* Занимаем всю ширину */
+    }
+
+    button {
+        padding: 8px 10px;
+        font-size: 13px;
+        margin: 2px;
+    }
+
+    .header {
+        padding: 10px;
+        margin: 5px;
+        width: 95%;
+    }
+
+    input[type="number"] {
+        width: 60px; /* Уменьшаем ширину поля ввода */
+    }
+}
+
+/* Стили для радио-кнопок на мобильных */
+@media (max-width: 768px) {
+    input[type="radio"] + label {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+}
