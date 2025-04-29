@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Факт о слове {{ dict_fact.word }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style_fact.css">
+</head>
+<body>
+
+    <!-- Общий заголовок -->
+    <header class="page-header">
+        <h1>Факт о слове {{ dict_fact.word }}</h1>
+    </header>
+
+    <!-- Сетка из 4 блоков -->
+    <div class="grid-container">
+        <!-- Блок 1: изображение -->
+        <div class="grid-item">
+            <h2>Фото факта</h2>
+            <img src="{{ dict_fact.photo }}" alt="Фото факта">
+        </div>
+
+        <!-- Блок 2: текст -->
+        <div class="grid-item">
+            <h2>Текст факта</h2>
+            <div class="text-block">
+                {{ dict_fact.text | safe }}
+            </div>
+        </div>
+
+        <!-- Блок 3: изображение -->
+        <div class="grid-item">
+            <h2>Подсказка PIXEL</h2>
+            <img src="{{ dict_fact.pixel }}" alt="Подсказка PIXEL">
+        </div>
+
+        <!-- Блок 4: изображение -->
+        <div class="grid-item">
+            <h2>Подсказка PIXEL (оригинал)</h2>
+            <img src="{{ dict_fact.picture }}" alt="Подсказка PIXEL (оригинал)">
+        </div>
+    </div>
+
+</body>
+</html>

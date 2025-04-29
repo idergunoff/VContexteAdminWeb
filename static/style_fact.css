@@ -1,0 +1,62 @@
+/* Общий заголовок */
+.page-header {
+    width: 100%;
+    padding: 20px;
+    background-color: #f4f4f9;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    border-bottom: 2px solid #ddd;
+}
+/* Сетка из 4 блоков: два в ряд */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px; /* ограничивает общую ширину контейнера */
+    margin: 20px auto;
+    padding: 0 20px;
+}
+/* Каждый блок квадратный, занимает половину ширины контейнера */
+.grid-item {
+    position: relative;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;    /* ширина блока 100% от ячейки */
+    aspect-ratio: 1 / 1; /* квадрат */
+    display: flex;
+    flex-direction: column;
+}
+/* Заголовок блока */
+.grid-item h2 {
+    margin: 0;
+    padding: 10px;
+    background-color: #ffb65e;
+    color: #fff;
+    font-size: 18px;
+    text-align: center;
+}
+/* Контент блока: изображение */
+.grid-item img {
+    flex: 1;
+    width: 100%;
+    object-fit: cover;
+}
+/* Контент блока: текст */
+.text-block {
+    flex: 1;
+    padding: 15px;
+    font-size: 16px;
+    color: #333;
+    overflow: auto;
+}
+/* Адаптивность: один столбец на мобильных */
+@media (max-width: 768px) {
+    .grid-container {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 0 10px;
+    }
+}

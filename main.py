@@ -20,7 +20,8 @@ import pickle
 from word import router as word_router
 
 from model import *
-from func import get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user, check_word_facts
+from func import (get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user,
+                  check_word_facts, get_dict_fact)
 from graph import graph_vers_plotly, draw_graph_user, draw_graph_word, draw_distr_trying
 from control_ai import check_control_al
 
@@ -378,3 +379,13 @@ async def get_reset_ai(word_id):
             rc.done = False
 
     return {"message": f"ResultControl {word_id} reset successfully"}
+
+
+@app.get("/word_fact/{word_id}")
+async def get_word_fact(request: Request, word_id):
+
+    dict_fact = await get_dict_fact(word_id)
+
+    return templates.TemplateResponse("word_fact.html", {"request": request, "dict_fact": dict_fact})
+
+

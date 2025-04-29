@@ -1,5 +1,6 @@
 import json
 import datetime
+import requests
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -7,6 +8,7 @@ from scipy.stats import kurtosis, skew
 
 import numpy as np
 
+from connect import TOKEN_BOT
 from model import *
 
 
@@ -293,7 +295,10 @@ async def get_trying_by_word(word_id: int, sort: str):
                     key['title'] += f' - 🏁{key["date_done"]}'
             if sort == 'done' or sort == 'top':
                 key['title'] += f'🔫{key["date_start"]} - 🏁{key["date_done"]}'
-        min_vers, med_vers, skew_vers, kurt_vers = (round(np.min(list_count_vers), 2), round(np.median(list_count_vers), 2),
+        if len(list_count_vers) == 0:
+            min_vers = med_vers = skew_vers = kurt_vers = 0
+        else:
+            min_vers, med_vers, skew_vers, kurt_vers = (round(np.min(list_count_vers), 2), round(np.median(list_count_vers), 2),
                                                     round(skew(list_count_vers), 2), round(kurtosis(list_count_vers), 2))
         text_header = (f'<div>{word.word} {word.date_play.strftime("%d.%m.%Y")}</div>'
                        f'<div>🙂{count_user} - 🎯{count_done} - 🏆{count_tt_done}</div>'
@@ -430,3 +435,35 @@ async def check_word_facts(word_id):
             else:
                 fact ='📜'
     return ''.join([fact, '🖼' if 'photo' in types else '', '🖌' if hint_pixel else ''])
+
+
+async def get_dict_fact(word_id):
+    word_id = int(word_id)
+    async with get_session() as session:
+        result_ft = await session.execute(select(WordFact).filter_by(word_id=word_id, type='text'))
+        word_fact_text = result_ft.scalars().first()
+
+        result_fph = await session.execute(select(WordFact).filter_by(word_id=word_id, type='photo'))
+        word_fact_photo = result_fph.scalars().first()
+
+        result_h = await session.execute(select(HintPixel).filter_by(word_id=word_id))
+        hint_pixel = result_h.scalars().first()
+
+        result_w = await session.execute(select(Word.word).filter_by(id=word_id))
+        word = result_w.scalars().first()
+
+    dict_fact = {}
+    dict_fact['text'] = word_fact_text.fact if word_fact_text else ''
+    dict_fact['photo'] = await get_link_photo_tg(word_fact_photo.fact) if word_fact_photo else 0
+    dict_fact['pixel'] = await get_link_photo_tg(hint_pixel.pixel) if hint_pixel else 0
+    dict_fact['picture'] = await get_link_photo_tg(hint_pixel.picture) if hint_pixel else 0
+    dict_fact['word'] = word
+
+    return dict_fact
+
+
+async def get_link_photo_tg(link_photo):
+    file = requests.get('https://api.telegram.org/bot' + TOKEN_BOT + '/getFile?file_id=' + link_photo).json()['result']
+    file_path = file['file_path']
+    download_url = 'https://api.telegram.org/file/bot' + TOKEN_BOT + '/' + file_path
+    return download_url

@@ -426,6 +426,20 @@ document.getElementById('trying-distr-btn').addEventListener('click', async () =
 });
 
 
+document.getElementById('word-fact-btn').addEventListener('click', async () => {
+    const wordId = document.getElementById('word-header').getAttribute('data-word-id');
+
+    try {
+        window.open(`/word_fact/${wordId}`, '_blank');
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить страницу с фактами о слове');
+    }
+});
+
+
+
 document.getElementById('first-words-btn').addEventListener('click', async () => {
     const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
     try {

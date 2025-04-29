@@ -19,6 +19,7 @@
             <div class="btn-container">
                 <button id="word-remove-btn">🗑</button>
                 <button id="words-back-btn">🔙</button>
+                <button id="word-fact-btn">🖼</button>
                 <input type="number" min="0" max="100" step="1" value="50">
                 <button id="delete-word-btn" hidden>Удалить</button>
                 <button id="move-word-btn" hidden>Переместить</button>
@@ -72,7 +73,7 @@
     </div>
     <div class="container">
         <div class="column">
-            <h2 id="word-header">Слова</h2>
+            <h2 id="word-header" data-word-id="{{ dict_all.word_id }}">Слова</h2>
 
             <label for="dropdown">Выберите элемент:</label>
             <select id="dropdown">
