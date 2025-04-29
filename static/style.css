@@ -149,6 +149,33 @@ li {
     font-weight: bold;
 }
 
+/* Стиль для поля ввода для поиска слов */
+input[type="text"]#search-word {
+    box-sizing: border-box;
+    width: 100%;            /* Занимает всю ширину контейнера */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    font-size: 16px;
+    color: #333;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    appearance: none;        /* Убираем стандартный стиль в некоторых браузерах */
+    transition: border-color 0.3s, box-shadow 0.3s; /* Плавные переходы */
+}
+
+input[type="text"]#search-word:hover {
+    border-color: #b0c4de;   /* Более заметная граница при наведении */
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+input[type="text"]#search-word:focus {
+    outline: none;           /* Убираем стандартную рамку */
+    border-color: #4a90e2;   /* Синий цвет рамки при фокусе */
+    box-shadow: 0 2px 10px rgba(74, 144, 226, 0.3); /* Подсветка синеватым при фокусе */
+}
+
 
 /* Улучшенный контейнер для кнопок */
 .btn-container {
