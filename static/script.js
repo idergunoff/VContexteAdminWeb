@@ -439,6 +439,25 @@ document.getElementById('word-fact-btn').addEventListener('click', async () => {
 });
 
 
+document.getElementById('search-word').addEventListener('input', () => {
+    const searchValue = document.getElementById('search-word').value.toLowerCase().trim();
+    if (!searchValue) return;
+
+    const listItems = document.querySelectorAll('#word-list li');
+
+    for (const item of listItems) {
+        // Отделяем текст после первой точки
+        const match = item.textContent.match(/^\s*\d+\.\s*(.*)$/);
+        if (match) {
+            const word = match[1].toLowerCase(); // Берем только слово
+            if (word === searchValue) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                break;
+            }
+        }
+    }
+});
+
 
 document.getElementById('first-words-btn').addEventListener('click', async () => {
     const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
