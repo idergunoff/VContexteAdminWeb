@@ -202,6 +202,12 @@ async def get_trying_by_word(word_id: int, sort: str):
             .filter(TryingTopTen.word_id == word_id))
         hint_top_ten = result_htt.scalars().all()
 
+        result_ut = await session.execute(select(UserTransaction).filter(
+            UserTransaction.date_trans >= word.date_play,
+            UserTransaction.date_trans < (word.date_play + datetime.timedelta(days=1))))
+        user_trans = result_ut.scalars().all()
+
+
     count_user, count_done, count_tt_done, count_new_user, count_not_hint, list_count_vers = 0, 0, 0, 0, 0, []
     if word:
         for u in users:
@@ -295,6 +301,14 @@ async def get_trying_by_word(word_id: int, sort: str):
                     key['title'] += f' - 🏁{key["date_done"]}'
             if sort == 'done' or sort == 'top':
                 key['title'] += f'🔫{key["date_start"]} - 🏁{key["date_done"]}'
+
+        plus_trans, minus_trans = 0, 0
+        for ut in user_trans:
+            if ut.amount > 0:
+                plus_trans += ut.amount
+            else:
+                minus_trans += ut.amount
+
         if len(list_count_vers) == 0:
             min_vers = med_vers = skew_vers = kurt_vers = 0
         else:
@@ -302,7 +316,7 @@ async def get_trying_by_word(word_id: int, sort: str):
                                                     round(skew(list_count_vers), 2), round(kurtosis(list_count_vers), 2))
         text_header = (f'<div>{word.word} {word.date_play.strftime("%d.%m.%Y")}</div>'
                        f'<div>🙂{count_user} - 🎯{count_done} - 🏆{count_tt_done}</div>'
-                       f'<div>🆕{count_new_user} - 🚫💡{count_not_hint}</div>'
+                       f'<div>🆕{count_new_user} - 🚫💡{count_not_hint} - 💰{plus_trans}/{minus_trans}</div>'
                        f'<div>🔢{min_vers}/{med_vers} - 📈{skew_vers}/{kurt_vers}</div>')
         dict_all = {
             "word": word.word,
