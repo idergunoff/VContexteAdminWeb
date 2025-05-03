@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from typing import List
 import pickle
 
+from sqlalchemy.exc import MultipleResultsFound
 
 from word import router as word_router
 
@@ -296,8 +297,16 @@ async def get_control_ai(trying_id):
         if not trying.done:
             return {'text': '😴'}
 
-        result_rc = await session.execute(select(ResultControl).filter_by(trying_id=trying.id))
-        result_control = result_rc.scalar_one_or_none()
+        try:
+            result_rc = await session.execute(select(ResultControl).filter_by(trying_id=trying.id))
+            result_control = result_rc.scalar_one_or_none()
+        except MultipleResultsFound:
+            result_rc = await session.execute(select(ResultControl).filter_by(trying_id=trying.id))
+            result_control = result_rc.scalars().all()
+            for rc in result_control:
+                await session.delete(rc)
+            await session.flush()
+            result_control = 0
 
         if not result_control:
             result_control = ResultControl(trying_id=trying.id, word_id=trying.word_id)
