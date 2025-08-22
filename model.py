@@ -94,6 +94,7 @@ class Word(Base):
     facts = relationship('WordFact', back_populates='word')
     stats = relationship('WordStat', back_populates='word')
     pixel = relationship('HintPixel', back_populates='word')
+    crash = relationship('HintCrash', back_populates='word')
     results = relationship('ResultControl', back_populates='word')
 
 
@@ -134,6 +135,7 @@ class Trying(Base):
     userscore = relationship('UserScore', back_populates='trying')
     hints_main_word = relationship('HintMainWord', back_populates='trying')
     results = relationship('ResultControl', back_populates='trying')
+    crash_trying = relationship('HintCrashTrying', back_populates='trying')
 
 
 class TryingTopTen(Base):
@@ -263,6 +265,29 @@ class HintPixel(Base):
     picture = Column(Text)
 
     word = relationship('Word', back_populates='pixel')
+
+
+class HintCrash(Base):
+    __tablename__ = 'hint_crash'
+
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer, ForeignKey('word.id'))
+    text = Column(Text)
+
+    word = relationship('Word', back_populates='crash')
+    crash_trying = relationship('HintCrashTrying', back_populates='crash')
+
+
+class HintCrashTrying(Base):
+    __tablename__ = 'hint_crash_trying'
+
+    id = Column(Integer, primary_key=True)
+    crash_id = Column(Integer, ForeignKey('hint_crash.id'))
+    trying_id = Column(Integer, ForeignKey('trying.id'))
+    date_hint = Column(DateTime)
+
+    crash = relationship('HintCrash', back_populates='crash_trying')
+    trying = relationship('Trying', back_populates='crash_trying')
 
 
 class HintTopTen(Base):

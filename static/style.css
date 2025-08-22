@@ -242,6 +242,7 @@ input[type="radio"] + label {
   cursor: pointer;
   font-size: 16px; /* Размер текста */
   margin-bottom: 10px; /* Отступ между радио-кнопками */
+  margin-left: 15px;
 }
 
 input[type="radio"] + label::before {
@@ -332,4 +333,57 @@ input[type="radio"] + label:hover::before {
         font-size: 14px;
         margin-bottom: 5px;
     }
+}
+
+/* CONTROL AI */
+
+/* Панель и плавное появление */
+#label-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+  background-color: #f0f0f0;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  padding: 0 10px;
+}
+
+#label-panel.show {
+  max-height: 1000px;
+  opacity: 1;
+  padding: 10px;
+}
+
+/* Трёхколоночная раскладка */
+.panel-columns {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Одна колонка */
+.column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Блок со списками */
+.list-box {
+  border: 1px solid #aaa;
+  background-color: #fff;
+  height: 300px;
+  overflow-y: auto;
+  padding: 5px;
+  font-family: monospace;
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+/* Группа кнопок */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }

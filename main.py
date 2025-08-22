@@ -1,16 +1,14 @@
 import datetime
 import calendar
 import json
-import os
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from jinja2.runtime import new_context
 
-from auth import authenticate_user, create_access_token, oauth2_scheme
+from auth import authenticate_user, create_access_token
 
 from pydantic import BaseModel
 from typing import List
@@ -18,13 +16,15 @@ import pickle
 
 from sqlalchemy.exc import MultipleResultsFound
 
+from control.func_control_ai import get_update_list_trying_train, add_trying_to_model, rm_trying_from_model, \
+    auto_add_trying, train_model, save_new_model
 from word import router as word_router
 
 from model import *
-from func import (get_bg_color, get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user,
+from func import (get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user,
                   check_word_facts, get_dict_fact)
 from graph import graph_vers_plotly, draw_graph_user, draw_graph_word, draw_distr_trying
-from control_ai import check_control_al
+from control.control_ai import check_control_al
 
 app = FastAPI()
 
@@ -333,6 +333,15 @@ async def get_control_ai(trying_id):
     return dict_result
 
 
+@app.get("/get_word_id_by_trying_id/{trying_id}")
+async def get_word_id_by_trying_id(trying_id):
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).filter_by(id=int(trying_id)))
+        trying = result_t.scalar_one()
+
+    return {"word_id": trying.word_id}
+
+
 @app.get("/graph_vers/{trying_id}")
 async def get_graph_vers(trying_id):
     async with get_session() as session:
@@ -397,4 +406,54 @@ async def get_word_fact(request: Request, word_id):
 
     return templates.TemplateResponse("word_fact.html", {"request": request, "dict_fact": dict_fact})
 
+######### CONTROL AI ##########
 
+@app.get("/control_ai/update_list")
+async def update_list_control_ai():
+    return await get_update_list_trying_train()
+
+
+@app.get("/control_ai/add_trying_true/{trying_id}")
+async def add_trying_true(trying_id):
+    msg = await add_trying_to_model(True, int(trying_id))
+    return {"message": msg}
+
+
+@app.get("/control_ai/add_trying_false/{trying_id}")
+async def add_trying_false(trying_id):
+    msg = await add_trying_to_model(False, int(trying_id))
+    return {"message": msg}
+
+
+@app.get("/control_ai/rm_trying/{trying_id}")
+async def rm_trying(trying_id):
+    msg = await rm_trying_from_model(int(trying_id))
+    return {"message": msg}
+
+
+@app.get("/control_ai/auto_add_trying_true/{count}")
+async def auto_add_trying_true(count):
+    msg = await auto_add_trying(True, int(count))
+    return {"message": msg}
+
+
+@app.get("/control_ai/auto_add_trying_false/{count}")
+async def auto_add_trying_false(count):
+    msg = await auto_add_trying(False, int(count))
+    return {"message": msg}
+
+
+@app.get("/control_ai/training")
+async def training():
+    data = await train_model()
+    return HTMLResponse(content=data, status_code=200)
+
+
+@app.get("/control_ai/save_model")
+async def save_model():
+    data = await save_new_model()
+
+    with open('control/control_model.pkl', 'rb') as f:
+        app.state.control_model = pickle.load(f)
+
+    return {"message": data}

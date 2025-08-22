@@ -507,3 +507,195 @@ document.getElementById('reset-ai-btn').addEventListener('click', async () => {
         console.error('Ошибка загрузки данных:', error);
     }
 });
+
+
+// CONTROL AI
+
+document.getElementById("toggle-panel").onclick = () => {
+  updateListTryingTrainAI();
+  document.getElementById("label-panel").classList.toggle("show");
+};
+
+
+async function updateListTryingTrainAI() {
+    try {
+        const response = await fetch(`/control_ai/update_list`);
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        }
+        const data = await response.json();
+
+        const listTrue = document.getElementById('true-list');
+        listTrue.innerHTML = '';
+        const listFalse = document.getElementById('false-list');
+        listFalse.innerHTML = '';
+
+        document.getElementById("true-count").textContent = data.count_true;
+        document.getElementById("false-count").textContent = data.count_false;
+
+        if (data.list_true.length > 0) {
+            data.list_true.forEach((trying, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index + 1}. ${trying[0]}`;
+                listItem.addEventListener('click', function () {
+                    onControlTryingClick(trying[1]);
+                });
+                listTrue.appendChild(listItem);
+            });
+        } else {
+            listTrue.innerHTML = '<li>Нет данных</li>';
+        }
+        if (data.list_false.length > 0) {
+            data.list_false.forEach((trying, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index + 1}. ${trying[0]}`;
+                listItem.addEventListener('click', function () {
+                    onControlTryingClick(trying[1]);
+                });
+                listFalse.appendChild(listItem);
+            });
+        } else {
+            listFalse.innerHTML = '<li>Нет данных</li>';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
+}
+
+
+async function getWordIdByTryingId(tryingId) {
+    try {
+        const response = await fetch(`/get_word_id_by_trying_id/${tryingId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        }
+        const data = await response.json();
+        return data.word_id;
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
+}
+
+
+async function onControlTryingClick(tryingId) {
+    loadUserVersions(tryingId);
+    const wordId = await getWordIdByTryingId(tryingId);
+    onWordClick(wordId, 1)
+}
+
+let trueCount = 0;
+let falseCount = 0;
+
+function updateCount() {
+  document.getElementById("true-count").textContent = trueCount;
+  document.getElementById("false-count").textContent = falseCount;
+}
+
+async function addTrue() {
+    const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+
+    const response = await fetch(`/control_ai/add_trying_true/${tryingId}`);
+    if (!response.ok) {
+        throw new Error('Ошибка при загрузке данных');
+    }
+    const data = await response.json();
+    showCustomAlert(data.message);
+    updateListTryingTrainAI();
+}
+
+async function removeTrue() {
+  const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+
+  const response = await fetch(`/control_ai/rm_trying/${tryingId}`);
+  if (!response.ok) {
+      throw new Error('Ошибка при загрузке данных');
+  }
+  const data = await response.json();
+  showCustomAlert(data.message);
+  updateListTryingTrainAI();
+}
+
+
+async function addFalse() {
+    const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+
+    const response = await fetch(`/control_ai/add_trying_false/${tryingId}`);
+    if (!response.ok) {
+        throw new Error('Ошибка при загрузке данных');
+    }
+    const data = await response.json();
+    showCustomAlert(data.message);
+    updateListTryingTrainAI();
+}
+
+
+async function removeFalse() {
+  const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+
+  const response = await fetch(`/control_ai/rm_trying/${tryingId}`);
+  if (!response.ok) {
+      throw new Error('Ошибка при загрузке данных');
+  }
+  const data = await response.json();
+  showCustomAlert(data.message);
+  updateListTryingTrainAI();
+}
+
+function train() {
+    try {
+        window.open(`/control_ai/training`, '_blank');
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить график');
+    }
+}
+
+async function autoAddTrue() {
+  const count = parseInt(document.getElementById("auto-count").value);
+  const response = await fetch(`/control_ai/auto_add_trying_true/${count}`);
+  if (!response.ok) {
+      throw new Error('Ошибка при загрузке данных');
+  }
+  const data = await response.json();
+  showCustomAlert(data.message);
+  updateListTryingTrainAI();
+}
+
+async function autoAddFalse() {
+  const count = parseInt(document.getElementById("auto-count").value);
+  const response = await fetch(`/control_ai/auto_add_trying_false/${count}`);
+  if (!response.ok) {
+      throw new Error('Ошибка при загрузке данных');
+  }
+  const data = await response.json();
+  showCustomAlert(data.message);
+  updateListTryingTrainAI();
+}
+
+
+function showCustomAlert(message) {
+  const modal = document.createElement('div');
+  modal.style.position = 'fixed';
+  modal.style.left = '0'; modal.style.top = '0';
+  modal.style.width = '100vw'; modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.4)';
+  modal.style.display = 'flex'; modal.style.alignItems = 'center'; modal.style.justifyContent = 'center';
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px 40px;border-radius:8px;box-shadow:0 0 16px #222">
+      <p>${message}</p>
+      <button id="close-modal-btn">OK</button>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('close-modal-btn').onclick = () => document.body.removeChild(modal);
+}
+
+
+async function saveModel() {
+    const response = await fetch(`/control_ai/save_model`);
+    if (!response.ok) {
+        throw new Error('Ошибка при загрузке данных');
+    }
+    const data = await response.json();
+    showCustomAlert(data.message);
+}

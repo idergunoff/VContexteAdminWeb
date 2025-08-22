@@ -14,12 +14,59 @@
         <h1 class="title">Административная панель</h1>
         <button class="logout-button" onclick="logout()">Выйти</button>
     </header>
+
+    <!-- Плавно появляющаяся панель -->
+    <div id="label-panel" class="panel">
+
+        <div class="panel-columns">
+
+            <!-- Блок True -->
+            <div class="column">
+                <h3>count TRUE: <span id="true-count">0</span></h3>
+                <div id="true-list" class="list-box"></div>
+            </div>
+
+            <!-- Блок False -->
+            <div class="column">
+                <h3>count FALSE: <span id="false-count">0</span></h3>
+                <div id="false-list" class="list-box"></div>
+            </div>
+
+            <!-- Блок кнопок -->
+            <div class="column">
+                <div class="button-group">
+                    <div class="button-container">
+                        <button onclick="addTrue()" style="background-color: #bfffbf;">add True</button>
+                        <button onclick="removeTrue()" style="background-color: #bfffbf;">remove True</button>
+                    </div>
+                    <div class="button-container">
+                        <button onclick="addFalse()" style="background-color: #fdbebe;">add False</button>
+                        <button onclick="removeFalse()" style="background-color: #fdbebe;">remove False</button>
+                    </div>
+                    <div class="button-container">
+                        <button onclick="train()" style="background-color: #45ece7;">TRAIN</button>
+                        <button onclick="saveModel()" style="background-color: #45ece7;">SAVE</button>
+                    </div>
+                    <div>
+                        <input id="auto-count" type="number" value="200" style="width: 60px;">
+                        <button onclick="autoAddTrue()" style="background-color: #bfffbf;">auto add True</button>
+                        <button onclick="autoAddFalse()" style="background-color: #fdbebe;">auto add False</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
     <div class="container">
         <div class="btn-column">
             <div class="btn-container">
                 <button id="word-remove-btn">🗑</button>
                 <button id="words-back-btn">🔙</button>
                 <button id="word-fact-btn">🖼</button>
+                <button id="toggle-panel">🏋</button>
                 <input type="number" min="0" max="100" step="1" value="50">
                 <button id="delete-word-btn" hidden>Удалить</button>
                 <button id="move-word-btn" hidden>Переместить</button>
@@ -43,7 +90,6 @@
             <div class="btn-container">
                 <button id="control-ai-btn">🤖</button>
                 <button id="reset-ai-btn">♻️</button>
-                <button id="train-ai-btn">🏋</button>
                 <button id="user-rate-btn">🏆</button>
                 <button id="trying-graph-btn">📈</button>
                 <button id="trying-distr-btn">📊</button>

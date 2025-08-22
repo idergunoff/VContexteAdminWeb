@@ -41,6 +41,14 @@
             <h2>Подсказка PIXEL (оригинал)</h2>
             <img src="{{ dict_fact.picture }}" alt="Подсказка PIXEL (оригинал)">
         </div>
+
+        <!-- Блок 5: подсказка сбой -->
+        <div class="grid-item">
+            <h2>Подсказка СБОЙ</h2>
+            <div class="text-block">
+                {{ dict_fact.crash | safe }}
+            </div>
+        </div>
     </div>
 
 </body>

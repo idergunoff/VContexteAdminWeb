@@ -56,6 +56,11 @@ async def get_versions_main(trying_id: str, version_sort: str):
         result_hw = await session.execute(select(HintMainWord).filter(HintMainWord.trying_id == int(trying_id)))
         hints_word = result_hw.scalars().all()
 
+        result_hcr = await session.execute(select(HintCrashTrying).options(selectinload(HintCrashTrying.crash)).filter(
+            HintCrashTrying.trying_id == int(trying_id)
+        ))
+        hints_crash = result_hcr.scalars().all()
+
         list_vers_hint = [hint.id for hint in hints]
         list_hint_allusion = [hint.id for hint in hints_allusion]
         list_hint_center = [hint.id for hint in hints_center]
@@ -77,6 +82,12 @@ async def get_versions_main(trying_id: str, version_sort: str):
         "date_version": hint.date_hint if version_sort == "time" else -1,
         "bg_color": '#ffffff'
     } for hint in hints_word]
+
+    versions_data += [{
+        "text": f'🤖 CRASH {hint.crash.text}',
+        "date_version": hint.date_hint if version_sort == "time" else -1,
+        "bg_color": '#ffffff'
+    } for hint in hints_crash]
 
     versions_data = sorted(versions_data, key=lambda x: x['date_version'])
     result = [{k: v for k, v in item.items() if k != 'date_version'} for item in versions_data]
@@ -196,6 +207,11 @@ async def get_trying_by_word(word_id: int, sort: str):
             select(Trying).join(HintMainWord)
             .filter(Trying.word_id == word_id, HintMainWord.hint_type == 'bomb'))
         hint_word_bomb = result_hvb.scalars().all()
+        
+        result_hcr = await session.execute(
+            select(Trying).join(HintCrashTrying)
+            .filter(Trying.word_id == word_id))
+        hint_word_crash = result_hcr.scalars().all()
 
         result_htt = await session.execute(
             select(TryingTopTen).join(HintTopTen)
@@ -217,6 +233,7 @@ async def get_trying_by_word(word_id: int, sort: str):
                 ud = next((i for i in user_day if i.id == u.id), None)
                 ha = [i for i in hint_allusion if i.user_id == u.id]
                 hc = [i for i in hint_center if i.user_id == u.id]
+                hcr = [i for i in hint_word_crash if i.user_id == u.id]
                 hw = next((i for i in hint_word_pixel if i.user_id == u.id), None)
                 ht = next((i for i in hint_word_tail if i.user_id == u.id), None)
                 hm = next((i for i in hint_word_metr if i.user_id == u.id), None)
@@ -237,6 +254,7 @@ async def get_trying_by_word(word_id: int, sort: str):
                                              f'{" 🧿" + str(t.hint) if t.hint > 0 else ""}'
                                              f'{" 💎" + str(len(ha)) if ha else ""}'
                                              f'{" 🌎" + str(len(hc)) if hc else ""}'
+                                             f'{" 🤖" + str(len(hcr)) if hcr else ""}'
                                              f'{" 🖼" if hw else ""}{" 🦎" if ht else ""}{" 📏" if hm else ""}'
                                              f'{" 💣" if hb else ""}')
                 try:
@@ -466,12 +484,20 @@ async def get_dict_fact(word_id):
         result_w = await session.execute(select(Word.word).filter_by(id=word_id))
         word = result_w.scalars().first()
 
+        result_hc = await session.execute(select(HintCrash).filter_by(word_id=word_id))
+        hint_crash = result_hc.scalars().all()
+
+    text_hc = ''
+    for hc in hint_crash:
+        text_hc += f'<p>{hc.text}</p>'
+
     dict_fact = {}
     dict_fact['text'] = word_fact_text.fact if word_fact_text else ''
     dict_fact['photo'] = await get_link_photo_tg(word_fact_photo.fact) if word_fact_photo else 0
     dict_fact['pixel'] = await get_link_photo_tg(hint_pixel.pixel) if hint_pixel else 0
     dict_fact['picture'] = await get_link_photo_tg(hint_pixel.picture) if hint_pixel else 0
     dict_fact['word'] = word
+    dict_fact['crash'] = text_hc
 
     return dict_fact
 
