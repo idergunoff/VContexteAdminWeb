@@ -6,6 +6,7 @@ document.getElementById('duels-back-btn').addEventListener('click', () => {
     window.location.href = '/admin';
 });
 
+
 async function duelsByMonth(selectedMonth) {
     try {
         const response = await fetch(`/duel/month/${selectedMonth}`);

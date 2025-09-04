@@ -1,10 +1,12 @@
 """Endpoints for duel administration pages."""
 
+
 import calendar
 import datetime
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+
 from fastapi.templating import Jinja2Templates
 
 from model import *
@@ -16,6 +18,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def duel_dashboard(request: Request):
+
     """Render the duel admin dashboard with available months."""
     async with get_session() as session:
         result_d = await session.execute(select(Duel.created_at).order_by(Duel.created_at))
@@ -31,6 +34,7 @@ async def duel_dashboard(request: Request):
             continue
 
     dict_all = {"duel_id": 0, "duel_month": duel_month}
+    
     return templates.TemplateResponse(
         "dashboard_duel.html", {"request": request, "dict_all": dict_all}
     )
@@ -69,4 +73,5 @@ async def get_month_duel(month: str):
             ]
         }
     )
+
 
