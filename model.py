@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from email.policy import default
 
 from sqlalchemy import (create_engine, Column, Integer, BigInteger, String, Float, Boolean, DateTime,
@@ -45,6 +46,8 @@ class User(Base):
     alpha = relationship('UserAlpha', back_populates='user')
     referral_code = relationship('ReferralCode', back_populates='user')
     referral_user = relationship('ReferralUser', back_populates='user')
+    duel_parts = relationship('DuelParticipant', back_populates='user')
+    duel_versions = relationship('DuelVersion', back_populates='user')
 
 
 class UserCoin(Base):
@@ -96,6 +99,7 @@ class Word(Base):
     pixel = relationship('HintPixel', back_populates='word')
     crash = relationship('HintCrash', back_populates='word')
     results = relationship('ResultControl', back_populates='word')
+    duels = relationship('Duel', back_populates='word')
 
 
 class WordStat(Base):
@@ -112,7 +116,6 @@ class WordStat(Base):
     all_done_time = Column(Integer)
 
     word = relationship('Word', back_populates='stats')
-
 
 
 class Trying(Base):
@@ -407,6 +410,69 @@ class ReferralUser(Base):
 
     user = relationship('User', back_populates='referral_user')
     referral_code = relationship('ReferralCode', back_populates='referral_user')
+
+
+################################################
+##################### DUEL #####################
+################################################
+
+class Duel(Base):
+    __tablename__ = "duel"
+
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer, ForeignKey("word.id"), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.datetime.now)  # момент, когда 1-й игрок нажал «Играть»
+    started_at = Column(DateTime, nullable=True)  # когда подключился 2-й игрок
+    finished_at = Column(DateTime, nullable=True)  # когда закончилась игра
+    status = Column(Enum("searching", "standby", "active", "finished", "cancelled", name="duel_status"),
+                    default="searching", index=True)
+    best_index = Column(Integer, nullable=True)  # индекс ближайшего слова
+    is_finished = Column(Boolean, default=False)  # True, если игра завершена
+    is_draw = Column(Boolean, default=False)  # True, если ничья
+    winner_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+
+    word = relationship("Word", back_populates="duels")
+    participants = relationship("DuelParticipant", back_populates="duel")
+    versions = relationship("DuelVersion", back_populates="duel")
+
+
+class DuelParticipant(Base):
+    __tablename__ = "duel_participant"
+
+    id = Column(Integer, primary_key=True)
+    duel_id = Column(Integer, ForeignKey("duel.id"))
+    user_id = Column(Integer, ForeignKey("user.id"))
+
+    joined_at = Column(DateTime, nullable=False)  # момент, когда игрок вошел
+    used_ticket = Column(Boolean, default=False)  # True, если вход был «бесплатным»
+    fee_paid = Column(Integer, default=0)  # фактически списано
+    coins_delta = Column(Integer, default=0)  # +90 ✨ / –50 ✨
+    vp_delta = Column(Integer, default=0)  # +375 VP / –120 VP
+    du_r_delta = Column(Integer, default=0)  # +13 / –13
+
+    finish_place = Column(Integer)  # 1 = победа, 2 = поражение (0 — ничья)
+
+    duel = relationship("Duel", back_populates="participants")
+    user = relationship("User", back_populates="duel_parts")
+
+
+class DuelVersion(Base):
+    __tablename__ = "duel_version"
+
+    id = Column(Integer, primary_key=True)
+    duel_id = Column(Integer, ForeignKey("duel.id"))
+    user_id = Column(Integer, ForeignKey("user.id"))
+
+    text = Column(Text)  # введённое слово
+    is_timeout = Column(Boolean, default=True)  # версия в режиме  таймаута
+    idx_global = Column(Integer)  # позиция этого слова в общем списке
+    idx_personal = Column(Integer)  # № попытки конкретного игрока
+    delta_rank = Column(Integer)  # >0 если «подвинул» лучший ранг
+    ts = Column(DateTime, default=datetime.datetime.now)
+
+    duel = relationship("Duel", back_populates="versions")
+    user = relationship("User", back_populates="duel_versions")
 
 
 # Base.metadata.create_all(engine)

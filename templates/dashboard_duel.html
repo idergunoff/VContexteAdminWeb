@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дуэли</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <header class="header">
+        <h1 class="title">Административная панель ДУЭЛИ</h1>
+        <button class="logout-button" onclick="logout()">Выйти</button>
+    </header>
+
+    <div class="container">
+        <div class="btn-column">
+            <div class="btn-container">
+                <button id="duels-back-btn">🔙</button>
+                <button id="word-duel-btn"></button>
+            </div>
+
+        </div>
+        <div class="btn-column">
+            <div class="btn-container">
+                <input type="radio" id="radio-idx" name="duel-version-sort" value="index">
+                <label for="radio-idx">ℹ️</label>
+                <input type="radio" id="radio-time" name="duel-version-sort" value="time" checked>
+                <label for="radio-time">⌚️</label>
+            </div>
+
+            <div class="btn-container">
+                <button id="duel-version-graph-btn">📈</button>
+            </div>
+        </div>
+        <div class="btn-column">
+            <div class="btn-container">
+                <input type="radio" id="radio1" name="duel-sort" value="time" checked>
+                <label for="radio1">🕔</label>
+                <input type="radio" id="radio2" name="duel-sort" value="word">
+                <label for="radio2">🖋</label>
+                <input type="radio" id="radio3" name="duel-sort" value="enemy">
+                <label for="radio3">🥊</label>
+            </div>
+
+            <div class="btn-container">
+                <button id="rating-btn">🏆</button>
+                <button id="graph-duel-1-btn">📉</button>
+                <button id="graph-duel-2-btn">📊</button>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="column">
+            <h2 id="duel-header" data-duel-id="{{ dict_all.duel_id }}">Дуэли</h2>
+
+            <label for="dropdown">Выберите элемент:</label>
+            <select id="dropdown">
+                {% for item in dict_all.duel_month %}
+                    <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+            </select>
+            <ul id="duel-list">
+                <li>Здесь появятся дуэли за выбранный месяц</li>
+            </ul>
+        </div>
+        <div class="column">
+            <h2 id="duel_vers-header">Версии дуэли</h2>
+            <ul id="duel_vers-list">
+
+            </ul>
+        </div>
+        <div class="column">
+            <h2 id="any-duel-header">Другие дуэли участников</h2>
+
+            <ul id="any-duel-list">
+
+            </ul>
+        </div>
+    </div>
+    <script src="/static/duel_script.js"> </script>
+</body>
+</html>
