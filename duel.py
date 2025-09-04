@@ -50,32 +50,77 @@ async def get_month_duel(month: str):
             select(
                 Duel.id,
                 Duel.created_at,
+                Duel.started_at,
+                Duel.finished_at,
+                Duel.winner_id,
                 Word.word,
                 User.id.label("user_id"),
                 User.username.label("user_name"),
+                func.count(DuelVersion.id).label("version_count"),
+                DuelParticipant.joined_at,
             )
             .join(Word, Duel.word_id == Word.id, isouter=True)
             .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
             .join(User, DuelParticipant.user_id == User.id)
+            .join(
+                DuelVersion,
+                (DuelVersion.duel_id == Duel.id)
+                & (DuelVersion.user_id == User.id),
+                isouter=True,
+            )
             .filter(
                 Duel.created_at >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
                 Duel.created_at <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
             )
-            .order_by(Duel.created_at)
+            .group_by(
+                Duel.id,
+                Duel.created_at,
+                Duel.started_at,
+                Duel.finished_at,
+                Duel.winner_id,
+                Word.word,
+                User.id,
+                User.username,
+                DuelParticipant.joined_at,
+            )
+            .order_by(Duel.created_at, DuelParticipant.joined_at)
         )
 
         rows = result.all()
         grouped = {}
-        for duel_id, created, word, user_id, user_name in rows:
+        for (
+            duel_id,
+            created,
+            started,
+            finished,
+            winner_id,
+            word,
+            user_id,
+            user_name,
+            version_count,
+            _,
+        ) in rows:
             grouped.setdefault(
                 duel_id,
                 {
                     "id": duel_id,
                     "date": created.strftime("%d.%m.%Y"),
                     "word": word or "",
+                    "start_time": started.isoformat() if started else None,
+                    "end_time": finished.isoformat() if finished else None,
+                    "duration": (finished - started).total_seconds()
+                    if started and finished
+                    else None,
+                    "winner_id": winner_id,
                     "participants": [],
                 },
-            )["participants"].append({"id": user_id, "name": user_name})
+            )["participants"].append(
+                {
+                    "id": user_id,
+                    "name": user_name,
+                    "version_count": version_count,
+                }
+            )
 
     return JSONResponse(content={"duels": list(grouped.values())})
 
