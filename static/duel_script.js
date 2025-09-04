@@ -20,19 +20,21 @@ async function duelsByMonth(selectedMonth) {
             data.duels.forEach(duel => {
                 const listItem = document.createElement('li');
 
-                // Заголовок дуэли (дата + слово)
-                const title = document.createElement('div');
-                title.textContent = `${duel.date}. ${duel.word}`;
-                listItem.appendChild(title);
+                const header = document.createElement('div');
+                header.textContent = `${duel.date}. ${duel.word}`;
+                listItem.appendChild(header);
 
-                // Список участников
-                const participantsUl = document.createElement('ul');
-                duel.participants.forEach(p => {
-                    const participantLi = document.createElement('li');
-                    participantLi.textContent = `${p.name}`;
-                    participantsUl.appendChild(participantLi);
-                });
-                listItem.appendChild(participantsUl);
+                const firstLine = document.createElement('div');
+                const first = duel.participants[0];
+                firstLine.textContent = `${first.name} (${first.versions})${duel.winner_id === first.id ? ' 👑' : ''}`;
+                listItem.appendChild(firstLine);
+
+                const secondLine = document.createElement('div');
+                const second = duel.participants[1];
+                secondLine.textContent = `${second.name} (${second.versions})${duel.winner_id === second.id ? ' 👑' : ''}`;
+                listItem.appendChild(secondLine);
+
+                listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration}`;
 
                 duelList.appendChild(listItem);
             });

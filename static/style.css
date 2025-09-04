@@ -132,6 +132,10 @@ li {
     font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
 }
 
+li div {
+    display: block;
+}
+
 .word-item {
     cursor: pointer;
     padding: 10px;
