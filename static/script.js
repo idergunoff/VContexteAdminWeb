@@ -438,6 +438,11 @@ document.getElementById('word-fact-btn').addEventListener('click', async () => {
     }
 });
 
+// DUEL
+document.getElementById('duel-btn').addEventListener('click', () => {
+    window.open('/duel', '_blank');
+});
+
 
 document.getElementById('search-word').addEventListener('input', () => {
     const searchValue = document.getElementById('search-word').value.toLowerCase().trim();

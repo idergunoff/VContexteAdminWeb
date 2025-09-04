@@ -21,7 +21,7 @@ from control.func_control_ai import get_update_list_trying_train, add_trying_to_
 from word import router as word_router
 
 from model import *
-from duel import *
+from duel import router as duel_router
 from func import (get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user,
                   check_word_facts, get_dict_fact)
 from graph import graph_vers_plotly, draw_graph_user, draw_graph_word, draw_distr_trying
@@ -30,6 +30,7 @@ from control.control_ai import check_control_al
 app = FastAPI()
 
 app.include_router(word_router, prefix="/word", tags=["Word"])
+app.include_router(duel_router, prefix="/duel", tags=["Duel"])
 
 # Подключение статики и шаблонизатора
 templates = Jinja2Templates(directory="templates")
