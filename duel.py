@@ -42,36 +42,41 @@ async def duel_dashboard(request: Request):
 
 @router.get("/month/{month}")
 async def get_month_duel(month: str):
-    """Return duels for a given month."""
     async with get_session() as session:
         date_month = datetime.datetime.strptime(month, "%m %Y")
         _, last_day = calendar.monthrange(date_month.year, date_month.month)
+
         result = await session.execute(
-            select(Duel.id, Duel.created_at, Word.word)
+            select(
+                Duel.id,
+                Duel.created_at,
+                Word.word,
+                User.id.label("user_id"),
+                User.username.label("user_name"),
+            )
             .join(Word, Duel.word_id == Word.id, isouter=True)
+            .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
+            .join(User, DuelParticipant.user_id == User.id)
             .filter(
-                Duel.created_at >= datetime.datetime(
-                    year=date_month.year, month=date_month.month, day=1
-                ),
-                Duel.created_at <= datetime.datetime(
-                    year=date_month.year, month=date_month.month, day=last_day
-                ),
+                Duel.created_at >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
+                Duel.created_at <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
             )
             .order_by(Duel.created_at)
         )
-        duels = result.all()
 
-    return JSONResponse(
-        content={
-            "duels": [
+        rows = result.all()
+        grouped = {}
+        for duel_id, created, word, user_id, user_name in rows:
+            grouped.setdefault(
+                duel_id,
                 {
-                    "id": d[0],
-                    "date": d[1].strftime("%d.%m.%Y"),
-                    "word": d[2] or "",
-                }
-                for d in duels
-            ]
-        }
-    )
+                    "id": duel_id,
+                    "date": created.strftime("%d.%m.%Y"),
+                    "word": word or "",
+                    "participants": [],
+                },
+            )["participants"].append({"id": user_id, "name": user_name})
+
+    return JSONResponse(content={"duels": list(grouped.values())})
 
 

@@ -3,7 +3,7 @@ import datetime
 from email.policy import default
 
 from sqlalchemy import (create_engine, Column, Integer, BigInteger, String, Float, Boolean, DateTime,
-                        ForeignKey, Date, Text, text, literal_column, or_, func, desc)
+                        ForeignKey, Date, Text, text, literal_column, or_, func, desc, Enum, update, delete)
 from sqlalchemy.future import select
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, selectinload
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker

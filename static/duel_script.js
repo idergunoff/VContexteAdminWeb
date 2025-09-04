@@ -19,7 +19,21 @@ async function duelsByMonth(selectedMonth) {
         if (data.duels.length > 0) {
             data.duels.forEach(duel => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `${duel.date}. ${duel.word}`;
+
+                // Заголовок дуэли (дата + слово)
+                const title = document.createElement('div');
+                title.textContent = `${duel.date}. ${duel.word}`;
+                listItem.appendChild(title);
+
+                // Список участников
+                const participantsUl = document.createElement('ul');
+                duel.participants.forEach(p => {
+                    const participantLi = document.createElement('li');
+                    participantLi.textContent = `${p.name}`;
+                    participantsUl.appendChild(participantLi);
+                });
+                listItem.appendChild(participantsUl);
+
                 duelList.appendChild(listItem);
             });
         } else {
