@@ -57,7 +57,7 @@ document.getElementById('dropdown').addEventListener('change', function () {
 async function loadDuelVersions(duelId) {
     try {
         const sort = document.querySelector('input[name="duel-version-sort"]:checked').value;
-        const response = await fetch(`/duel/${duelId}/versions?sort=${sort}`);
+        const response = await fetch(`/duel/versions/${duelId}?sort=${sort}`);
         if (!response.ok) throw new Error('Ошибка при загрузке данных');
         const data = await response.json();
 
