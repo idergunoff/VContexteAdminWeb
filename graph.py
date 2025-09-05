@@ -32,8 +32,9 @@ async def graph_duel_versions_plotly(duel):
 
     data = {name: {"x": [], "y": [], "text": []} for name in players}
     for dv, name in rows:
+        idx = dv.idx_global if dv.idx_global > 0 else 1
         data[name]["x"].append(dv.ts)
-        data[name]["y"].append(dv.idx_global)
+        data[name]["y"].append(idx)
         data[name]["text"].append(dv.text)
 
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
@@ -67,6 +68,8 @@ async def graph_duel_versions_plotly(duel):
             row=2,
             col=1,
         )
+    fig.update_yaxes(type="log", row=1, col=1)
+    fig.update_yaxes(type="log", row=2, col=1)
 
     return fig.to_html(full_html=True, include_plotlyjs="cdn")
 
