@@ -124,6 +124,17 @@ document.querySelectorAll('input[name="duel-version-sort"]').forEach((radio) => 
     });
 });
 
+document.getElementById('duel-version-graph-btn').addEventListener('click', async () => {
+    const duelId = document.getElementById('duel_vers-header').dataset.duelId;
+
+    try {
+        window.open(`/duel/graph_vers/${duelId}`, '_blank');
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить график');
+    }
+});
+
 function setBgItem(index, listItem) {
     if (index >= 5000) {
         listItem.style.backgroundColor = '#f4bcfe';
