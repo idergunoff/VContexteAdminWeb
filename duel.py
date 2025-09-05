@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from model import *
+from func import get_bg_color
 
 
 router = APIRouter()
@@ -123,5 +124,40 @@ async def get_month_duel(month: str):
             )
 
     return JSONResponse(content={"duels": list(grouped.values())})
+
+
+@router.get("/versions/{duel_id}")
+async def get_duel_versions(duel_id: int, sort: str = "time"):
+    async with get_session() as session:
+        result_p = await session.execute(
+            select(DuelParticipant.user_id)
+            .filter_by(duel_id=duel_id)
+            .order_by(DuelParticipant.joined_at)
+        )
+        participants = result_p.scalars().all()
+        player_map = {uid: idx + 1 for idx, uid in enumerate(participants)}
+
+        order_col = DuelVersion.ts if sort == "time" else DuelVersion.idx_global
+        result_v = await session.execute(
+            select(DuelVersion, User)
+            .join(User, DuelVersion.user_id == User.id)
+            .filter(DuelVersion.duel_id == duel_id)
+            .order_by(order_col)
+        )
+        rows = result_v.all()
+
+        versions = [
+            {
+                "user_id": user.id,
+                "text": dv.text,
+                "idx": dv.idx_global,
+                "ts": dv.ts.isoformat(),
+                "player": player_map.get(dv.user_id),
+                "bg_color": get_bg_color(dv.idx_global),
+            }
+            for dv, user in rows
+        ]
+
+    return JSONResponse(content={"versions": versions})
 
 
