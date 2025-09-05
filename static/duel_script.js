@@ -26,15 +26,15 @@ async function duelsByMonth(selectedMonth) {
 
                 const firstLine = document.createElement('div');
                 const first = duel.participants[0];
-                firstLine.textContent = `${first.name} (${first.versions})${duel.winner_id === first.id ? ' 👑' : ''}`;
+                firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
                 listItem.appendChild(firstLine);
 
                 const secondLine = document.createElement('div');
                 const second = duel.participants[1];
-                secondLine.textContent = `${second.name} (${second.versions})${duel.winner_id === second.id ? ' 👑' : ''}`;
+                secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
                 listItem.appendChild(secondLine);
 
-                listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration}`;
+                listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration} минут`;
 
                 duelList.appendChild(listItem);
             });

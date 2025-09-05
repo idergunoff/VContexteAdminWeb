@@ -106,9 +106,9 @@ async def get_month_duel(month: str):
                     "id": duel_id,
                     "date": created.strftime("%d.%m.%Y"),
                     "word": word or "",
-                    "start_time": started.isoformat() if started else None,
-                    "end_time": finished.isoformat() if finished else None,
-                    "duration": (finished - started).total_seconds()
+                    "start_time": started.strftime("%H:%M:%S") if started else None,
+                    "end_time": finished.strftime("%H:%M:%S") if finished else None,
+                    "duration": round((finished - started).total_seconds()/60, 1)
                     if started and finished
                     else None,
                     "winner_id": winner_id,
