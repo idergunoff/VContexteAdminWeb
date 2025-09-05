@@ -75,7 +75,11 @@ async function loadDuelVersions(duelId) {
         if (data.versions && data.versions.length > 0) {
             data.versions.forEach((version, index) => {
                 const li = document.createElement('li');
-                li.textContent = version.text ?? '';
+                let text = `${version.idx_personal ?? index + 1}. ${version.text ?? ''} ✏️${version.idx_global ?? ''}`;
+                if (version.delta_rank && version.delta_rank > 0) {
+                    text += ` - 🍀${version.delta_rank}`;
+                }
+                li.textContent = text;
                 if (version.bg_color) {
                     li.style.backgroundColor = version.bg_color;
                 } else {
