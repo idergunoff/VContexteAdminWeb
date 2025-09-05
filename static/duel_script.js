@@ -64,10 +64,24 @@ async function loadDuelVersions(duelId) {
         const header = document.getElementById('duel_vers-header');
         header.dataset.duelId = duelId;
         const total = data.count_vers ?? data.count ?? (data.versions ? data.versions.length : 0);
-        if (data.duel_word) {
-            header.textContent = `Версии дуэли: ${data.duel_word} — Всего: ${total}`;
+        if (data.word) {
+            header.textContent = `Версии дуэли: ${data.word} — Всего: ${total}`;
         } else {
             header.textContent = `Версии дуэли — Всего: ${total}`;
+        }
+
+        const infoBlock = document.getElementById('duel-info');
+        if (infoBlock) {
+            const lines = [];
+            if (data.word) lines.push(`🖋 ${data.word}`); // 🖋
+            if (data.date) lines.push(`📅 ${data.date}`); // 📅
+            lines.push(`🕛 ${data.start_time || ''} / 🏁 ${data.end_time || ''}`); // 🕛 / 🏁
+            if (Array.isArray(data.participants)) {
+                data.participants.forEach(p => {
+                    lines.push(`👥 ${p.name} (${p.version_count})${data.winner_id === p.id ? ' 👑' : ''}`); // 👥 ... 👑
+                });
+            }
+            infoBlock.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
         }
 
         const list = document.getElementById('duel_vers-list');
