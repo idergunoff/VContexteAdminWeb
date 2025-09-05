@@ -150,8 +150,10 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             {
                 "user_id": user.id,
                 "text": dv.text,
-                "idx": dv.idx_global,
-                "ts": dv.ts.isoformat(),
+                "idx_global": dv.idx_global,
+                "idx_personal": dv.idx_personal,
+                "delta_rank": dv.delta_rank,
+                "ts": dv.ts.isoformat() if dv.ts else None,
                 "player": player_map.get(dv.user_id),
                 "bg_color": get_bg_color(dv.idx_global),
             }
