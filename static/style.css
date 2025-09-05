@@ -136,6 +136,14 @@ li div {
     display: block;
 }
 
+#duel-info {
+    margin-bottom: 10px;
+}
+
+#duel-info div {
+    margin: 2px 0;
+}
+
 .word-item {
     cursor: pointer;
     padding: 10px;

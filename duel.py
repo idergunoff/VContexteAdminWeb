@@ -129,13 +129,84 @@ async def get_month_duel(month: str):
 @router.get("/versions/{duel_id}")
 async def get_duel_versions(duel_id: int, sort: str = "time"):
     async with get_session() as session:
-        result_p = await session.execute(
-            select(DuelParticipant.user_id)
-            .filter_by(duel_id=duel_id)
+        result_info = await session.execute(
+            select(
+                Duel.created_at,
+                Duel.started_at,
+                Duel.finished_at,
+                Duel.winner_id,
+                Word.word,
+                User.id.label("user_id"),
+                User.username.label("user_name"),
+                func.count(DuelVersion.id).label("version_count"),
+                DuelParticipant.joined_at,
+            )
+            .join(Word, Duel.word_id == Word.id, isouter=True)
+            .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
+            .join(User, DuelParticipant.user_id == User.id)
+            .join(
+                DuelVersion,
+                (DuelVersion.duel_id == Duel.id)
+                & (DuelVersion.user_id == User.id),
+                isouter=True,
+            )
+            .filter(Duel.id == duel_id)
+            .group_by(
+                Duel.created_at,
+                Duel.started_at,
+                Duel.finished_at,
+                Duel.winner_id,
+                Word.word,
+                User.id,
+                User.username,
+                DuelParticipant.joined_at,
+            )
             .order_by(DuelParticipant.joined_at)
         )
-        participants = result_p.scalars().all()
-        player_map = {uid: idx + 1 for idx, uid in enumerate(participants)}
+        info_rows = result_info.all()
+
+        if info_rows:
+            created, started, finished, winner_id, word, *_ = info_rows[0]
+            duel_info = {
+                "word": word or "",
+                "date": created.strftime("%d.%m.%Y"),
+                "start_time": started.strftime("%H:%M:%S") if started else None,
+                "end_time": finished.strftime("%H:%M:%S") if finished else None,
+                "winner_id": winner_id,
+                "participants": [],
+            }
+        else:
+            duel_info = {
+                "word": "",
+                "date": "",
+                "start_time": None,
+                "end_time": None,
+                "winner_id": None,
+                "participants": [],
+            }
+
+        for (
+            _,
+            _,
+            _,
+            _,
+            _,
+            user_id,
+            user_name,
+            version_count,
+            _,
+        ) in info_rows:
+            duel_info["participants"].append(
+                {
+                    "id": user_id,
+                    "name": user_name,
+                    "version_count": version_count,
+                }
+            )
+
+        player_map = {
+            p["id"]: idx + 1 for idx, p in enumerate(duel_info["participants"])
+        }
 
         order_col = DuelVersion.ts if sort == "time" else DuelVersion.idx_global
         result_v = await session.execute(
@@ -160,6 +231,6 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             for dv, user in rows
         ]
 
-    return JSONResponse(content={"versions": versions})
+    return JSONResponse(content={**duel_info, "versions": versions})
 
 
