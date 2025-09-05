@@ -11,6 +11,66 @@ from func import get_username
 from model import *
 
 
+async def graph_duel_versions_plotly(duel):
+    """Generate HTML for duel versions graph using Plotly."""
+    async with get_session() as session:
+        result = await session.execute(
+            select(DuelVersion, User.username)
+            .join(User, DuelVersion.user_id == User.id)
+            .filter(DuelVersion.duel_id == duel.id)
+            .order_by(DuelVersion.ts)
+        )
+        rows = result.all()
+
+    players = []
+    for _, name in rows:
+        if name not in players:
+            players.append(name)
+
+    colors = ["blue", "red"]
+    color_map = {name: colors[i % len(colors)] for i, name in enumerate(players)}
+
+    data = {name: {"x": [], "y": [], "text": []} for name in players}
+    for dv, name in rows:
+        data[name]["x"].append(dv.ts)
+        data[name]["y"].append(dv.idx_global)
+        data[name]["text"].append(dv.text)
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
+
+    for name in players:
+        color = color_map.get(name, "blue")
+        fig.add_trace(
+            go.Scatter(
+                x=data[name]["x"],
+                y=data[name]["y"],
+                mode="markers",
+                marker=dict(color=color),
+                text=data[name]["text"],
+                hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: " + name,
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=data[name]["x"],
+                y=data[name]["y"],
+                mode="lines+markers",
+                marker=dict(color=color),
+                line=dict(color=color),
+                name=name,
+                text=data[name]["text"],
+                hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: " + name,
+            ),
+            row=2,
+            col=1,
+        )
+
+    return fig.to_html(full_html=True, include_plotlyjs="cdn")
+
+
 async def graph_vers_plotly(trying):
     # Получение данных из базы данных
     async with get_session() as session:

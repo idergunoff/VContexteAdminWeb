@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 from model import *
 from func import get_bg_color
+from graph import graph_duel_versions_plotly
 
 
 router = APIRouter()
@@ -232,5 +233,15 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
         ]
 
     return JSONResponse(content={**duel_info, "versions": versions})
+
+
+@router.get("/graph_vers/{duel_id}", response_class=HTMLResponse)
+async def duel_versions_graph(duel_id: int):
+    async with get_session() as session:
+        duel = await session.get(Duel, duel_id)
+    if not duel:
+        return HTMLResponse(content="Duel not found", status_code=404)
+    html = await graph_duel_versions_plotly(duel)
+    return HTMLResponse(content=html)
 
 
