@@ -32,6 +32,7 @@ async def graph_duel_versions_plotly(duel):
 
     data = {name: {"x": [], "y": [], "text": []} for name in players}
     for dv, name in rows:
+
         data[name]["x"].append(dv.ts)
         data[name]["y"].append(dv.idx_global)
         data[name]["text"].append(dv.text)
@@ -45,16 +46,19 @@ async def graph_duel_versions_plotly(duel):
             go.Scatter(
                 x=data[name]["x"],
                 y=y_vals,
+
                 mode="lines+markers",
                 marker=dict(color=color),
                 line=dict(color=color),
                 name=name,
                 text=data[name]["text"],
                 hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: " + name,
+
             )
         )
 
     fig.update_yaxes(type="log")
+
     return fig.to_html(full_html=True, include_plotlyjs="cdn")
 
 
