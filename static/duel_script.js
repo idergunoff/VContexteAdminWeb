@@ -62,7 +62,7 @@ async function loadDuelVersions(duelId) {
         const data = await response.json();
 
         const header = document.getElementById('duel_vers-header');
-        header.setAttribute('data-duel-id', duelId);
+        header.dataset.duelId = duelId;
         const total = data.count_vers ?? data.count ?? (data.versions ? data.versions.length : 0);
         if (data.duel_word) {
             header.textContent = `Версии дуэли: ${data.duel_word} — Всего: ${total}`;
@@ -96,9 +96,10 @@ async function loadDuelVersions(duelId) {
     }
 }
 
-document.querySelectorAll('input[name="duel-version-sort"]').forEach(radio => {
+document.querySelectorAll('input[name="duel-version-sort"]').forEach((radio) => {
     radio.addEventListener('change', () => {
-        const duelId = document.getElementById('duel_vers-header').getAttribute('data-duel-id');
+        const header = document.getElementById('duel_vers-header');
+        const duelId = header?.dataset.duelId;
         if (duelId) {
             loadDuelVersions(duelId);
         }
