@@ -32,44 +32,32 @@ async def graph_duel_versions_plotly(duel):
 
     data = {name: {"x": [], "y": [], "text": []} for name in players}
     for dv, name in rows:
-        idx = dv.idx_global if dv.idx_global > 0 else 1
+
         data[name]["x"].append(dv.ts)
-        data[name]["y"].append(idx)
+        data[name]["y"].append(dv.idx_global)
         data[name]["text"].append(dv.text)
 
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
+    fig = go.Figure()
 
     for name in players:
         color = color_map.get(name, "blue")
+        y_vals = [y if y > 0 else 1 for y in data[name]["y"]]
         fig.add_trace(
             go.Scatter(
                 x=data[name]["x"],
-                y=data[name]["y"],
-                mode="markers",
-                marker=dict(color=color),
-                text=data[name]["text"],
-                hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: " + name,
-                showlegend=False,
-            ),
-            row=1,
-            col=1,
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=data[name]["x"],
-                y=data[name]["y"],
+                y=y_vals,
+
                 mode="lines+markers",
                 marker=dict(color=color),
                 line=dict(color=color),
                 name=name,
                 text=data[name]["text"],
                 hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: " + name,
-            ),
-            row=2,
-            col=1,
+
+            )
         )
-    fig.update_yaxes(type="log", row=1, col=1)
-    fig.update_yaxes(type="log", row=2, col=1)
+
+    fig.update_yaxes(type="log")
 
     return fig.to_html(full_html=True, include_plotlyjs="cdn")
 
