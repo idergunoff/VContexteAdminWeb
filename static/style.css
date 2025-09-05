@@ -391,3 +391,7 @@ input[type="radio"] + label:hover::before {
   flex-direction: column;
   gap: 10px;
 }
+
+.second-player {
+  margin-left: 20px;
+}
