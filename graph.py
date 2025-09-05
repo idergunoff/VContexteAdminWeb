@@ -30,29 +30,47 @@ async def graph_duel_versions_plotly(duel):
     colors = ["blue", "red"]
     color_map = {name: colors[i % len(colors)] for i, name in enumerate(players)}
 
-    data = {name: {"x": [], "y": [], "text": []} for name in players}
+    data = {name: {"x": [], "y": [], "text": [], "delta_rank": []} for name in players}
     for dv, name in rows:
 
         data[name]["x"].append(dv.ts)
         data[name]["y"].append(dv.idx_global)
         data[name]["text"].append(dv.text)
+        data[name]["delta_rank"].append(dv.delta_rank)
 
     fig = go.Figure()
 
     for name in players:
         color = color_map.get(name, "blue")
         y_vals = [y if y > 0 else 1 for y in data[name]["y"]]
+
+        marker_colors = [
+            "yellow" if (d is not None and d > 0) else color
+            for d in data[name]["delta_rank"]
+        ]
+        marker_sizes = [
+            12 if (d is not None and d > 0) else 8
+            for d in data[name]["delta_rank"]
+        ]
+        customdata = [
+            f"Δrank: {d}" if (d is not None and d > 0) else ""
+            for d in data[name]["delta_rank"]
+        ]
+
         fig.add_trace(
             go.Scatter(
                 x=data[name]["x"],
                 y=y_vals,
 
                 mode="lines+markers",
-                marker=dict(color=color),
+                marker=dict(color=marker_colors, size=marker_sizes),
                 line=dict(color=color),
                 name=name,
                 text=data[name]["text"],
-                hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: " + name,
+                customdata=customdata,
+                hovertemplate="Слово: %{text}<br>Индекс: %{y}<br>Игрок: "
+                + name
+                + "<br>%{customdata}",
 
             )
         )
