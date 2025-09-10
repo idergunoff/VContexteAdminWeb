@@ -481,23 +481,39 @@ async def get_dict_fact(word_id):
         result_h = await session.execute(select(HintPixel).filter_by(word_id=word_id))
         hint_pixel = result_h.scalars().first()
 
-        result_w = await session.execute(select(Word.word).filter_by(id=word_id))
+        result_w = await session.execute(select(Word).filter_by(id=word_id))
         word = result_w.scalars().first()
 
         result_hc = await session.execute(select(HintCrash).filter_by(word_id=word_id))
         hint_crash = result_hc.scalars().all()
 
-    text_hc = ''
+        result_le = await session.execute(select(HintEmojik).filter_by(word_id=word_id))
+        hint_emojik = result_le.scalars().first()
+        if hint_emojik:
+            list_emojik = json.loads(hint_emojik.list_emoji)
+
+    text_hc = '<p><u>Подсказка 🤖СБОЙ:</u></p>'
     for hc in hint_crash:
         text_hc += f'<p>{hc.text}</p>'
+
+    if hint_emojik:
+        context_words = json.loads(word.context)
+        tt_words = context_words[1:11]
+
+        text_le = "<br><p><u>Подсказка 🤬ЭМОЖИК:</u></p>"
+        for n, w in enumerate(tt_words):
+            text_le += f'<p>{n + 1}. {w} - {list_emojik[n]}</p>'
+    else:
+        text_le = ''
 
     dict_fact = {}
     dict_fact['text'] = word_fact_text.fact if word_fact_text else ''
     dict_fact['photo'] = await get_link_photo_tg(word_fact_photo.fact) if word_fact_photo else 0
     dict_fact['pixel'] = await get_link_photo_tg(hint_pixel.pixel) if hint_pixel else 0
     dict_fact['picture'] = await get_link_photo_tg(hint_pixel.picture) if hint_pixel else 0
-    dict_fact['word'] = word
+    dict_fact['word'] = word.word
     dict_fact['crash'] = text_hc
+    dict_fact['emojik'] = text_le
 
     return dict_fact
 

@@ -98,6 +98,7 @@ class Word(Base):
     stats = relationship('WordStat', back_populates='word')
     pixel = relationship('HintPixel', back_populates='word')
     crash = relationship('HintCrash', back_populates='word')
+    emojik = relationship('HintEmojik', back_populates='word')
     results = relationship('ResultControl', back_populates='word')
     duels = relationship('Duel', back_populates='word')
 
@@ -116,6 +117,7 @@ class WordStat(Base):
     all_done_time = Column(Integer)
 
     word = relationship('Word', back_populates='stats')
+
 
 
 class Trying(Base):
@@ -293,6 +295,16 @@ class HintCrashTrying(Base):
     trying = relationship('Trying', back_populates='crash_trying')
 
 
+class HintEmojik(Base):
+    __tablename__ = 'hint_emojik'
+
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer, ForeignKey('word.id'))
+    list_emoji = Column(Text)
+
+    word = relationship('Word', back_populates='emojik')
+
+
 class HintTopTen(Base):
     __tablename__ = 'hint_top_ten'
 
@@ -410,7 +422,6 @@ class ReferralUser(Base):
 
     user = relationship('User', back_populates='referral_user')
     referral_code = relationship('ReferralCode', back_populates='referral_user')
-
 
 ################################################
 ##################### DUEL #####################
