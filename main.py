@@ -118,7 +118,7 @@ async def admin_page(request: Request):
         except AttributeError:
             continue
 
-    word_month = ["new"]
+    word_month = ["---", "new"]
     word_month.extend(
         month_map[key] for key in sorted(month_map.keys(), reverse=True)
     )
@@ -187,7 +187,9 @@ async def get_user_versions(trying_id: str, version_sort: str, version_type: str
 @app.get("/month_word/{month}")
 async def get_month_word(month: str):
     async with get_session() as session:
-        if month == "new":
+        if month == "---":
+            pass
+        elif month == "new":
             result = await session.execute(select(Word.id, Word.word, Word.order).filter(Word.order != 0).order_by(Word.order))
             words = result.all()
 
