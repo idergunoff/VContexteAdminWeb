@@ -237,9 +237,7 @@ async function handleMoveWordClick() {
         if (!wordHeader) {
             return;
         }
-document.getElementById('move-word-btn').addEventListener('click', async () => {
-    try {
-        const wordHeader = document.getElementById('word-header');
+
         const wordId = wordHeader.getAttribute('data-word-id');
         if (!wordId) {
             return;
@@ -249,6 +247,7 @@ document.getElementById('move-word-btn').addEventListener('click', async () => {
         if (!orderInput) {
             return;
         }
+
         const newOrder = parseInt(orderInput.value, 10);
         if (Number.isNaN(newOrder)) {
             return;
@@ -302,7 +301,6 @@ const moveWordBtn = document.getElementById('move-word-btn');
 if (moveWordBtn) {
     moveWordBtn.addEventListener('click', handleMoveWordClick);
 }
-});
 
 
 document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
