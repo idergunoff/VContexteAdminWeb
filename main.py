@@ -107,14 +107,21 @@ async def admin_page(request: Request):
         result_cw = await session.execute(select(Word).filter_by(current=True))
         curr_word = result_cw.scalar_one_or_none()
 
-    word_month = []
+    month_map = {}
     for w in words:
         try:
-            if w[2].strftime("%m %Y") not in word_month:
-                word_month.append(w[2].strftime("%m %Y"))
+            date_play = w[2]
+            if not date_play:
+                continue
+            month_key = datetime.date(date_play.year, date_play.month, 1)
+            month_map[month_key] = date_play.strftime("%m %Y")
         except AttributeError:
             continue
-    word_month.append("new")
+
+    word_month = ["new"]
+    word_month.extend(
+        month_map[key] for key in sorted(month_map.keys(), reverse=True)
+    )
 
     if curr_word:
         dict_all = await get_trying_by_word(curr_word.id, 'uid')
