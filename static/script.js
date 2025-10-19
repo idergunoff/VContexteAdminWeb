@@ -187,28 +187,34 @@ async function wordsByMonth(selectedMonth) {
         if (!response.ok) throw new Error('Ошибка при загрузке данных');
         const data = await response.json();
 
-        const wordList = document.getElementById('word-list');  // Список слов ниже
-        wordList.innerHTML = '';  // Очищаем список перед обновлением
-
-        if (data.words.length > 0) {
-            data.words.forEach((word, index) => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${word.order}. ${word.fact}${word.word}`;
-                listItem.addEventListener('click', function () {
-                    if (selectedMonth === 'new') {
-                        onNewWordClick(word.id);  // Вызываем другую функцию
-                    } else {
-                        onWordClick(word.id, 1);  // Вызываем стандартную функцию
-                    }
-                });
-                wordList.appendChild(listItem);  // Добавляем слово в список
-            });
-        } else {
-            wordList.innerHTML = '<li>Нет слов за выбранный месяц</li>';
-        }
+        renderWordList(data.words, selectedMonth);
     } catch (error) {
         console.error('Ошибка:', error);
     }
+}
+
+
+function renderWordList(words, selectedMonth) {
+    const wordList = document.getElementById('word-list');
+    wordList.innerHTML = '';
+
+    if (!words || words.length === 0) {
+        wordList.innerHTML = '<li>Нет слов за выбранный месяц</li>';
+        return;
+    }
+
+    words.forEach((word) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${word.order}. ${word.fact || ''}${word.word}`;
+        listItem.addEventListener('click', function () {
+            if (selectedMonth === 'new') {
+                onNewWordClick(word.id);
+            } else {
+                onWordClick(word.id, 1);
+            }
+        });
+        wordList.appendChild(listItem);
+    });
 }
 
 
@@ -223,6 +229,76 @@ document.getElementById('words-back-btn').addEventListener('click', async () => 
     const selectedMonth = document.getElementById('dropdown').value;
     wordsByMonth(selectedMonth);
 });
+
+
+async function handleMoveWordClick() {
+    try {
+        const wordHeader = document.getElementById('word-header');
+        if (!wordHeader) {
+            return;
+        }
+        const wordId = wordHeader.getAttribute('data-word-id');
+        if (!wordId) {
+            return;
+        }
+
+        const orderInput = document.getElementById('word-order-input');
+        if (!orderInput) {
+            return;
+        }
+        const newOrder = parseInt(orderInput.value, 10);
+        if (Number.isNaN(newOrder)) {
+            return;
+        }
+
+        const selectedMonth = document.getElementById('dropdown').value;
+        const includeWords = selectedMonth === 'new';
+
+        const response = await fetch('/word/move', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                word_id: Number(wordId),
+                new_order: newOrder,
+                include_words: includeWords,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при перемещении слова');
+        }
+
+        const data = await response.json();
+
+        if (data.status === 'skipped') {
+            return;
+        }
+
+        if (data.word && typeof data.word.order === 'number') {
+            orderInput.value = data.word.order;
+        }
+
+        if (includeWords) {
+            if (data.words) {
+                renderWordList(data.words, selectedMonth);
+            } else {
+                await wordsByMonth(selectedMonth);
+            }
+            await onNewWordClick(Number(wordId));
+        } else {
+            await onWordClick(Number(wordId), 1);
+        }
+    } catch (error) {
+        console.error('Ошибка при перемещении слова:', error);
+    }
+}
+
+const moveWordBtn = document.getElementById('move-word-btn');
+if (moveWordBtn) {
+    moveWordBtn.addEventListener('click', handleMoveWordClick);
+}
 
 
 document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
