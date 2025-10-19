@@ -231,6 +231,12 @@ document.getElementById('words-back-btn').addEventListener('click', async () => 
 });
 
 
+async function handleMoveWordClick() {
+    try {
+        const wordHeader = document.getElementById('word-header');
+        if (!wordHeader) {
+            return;
+        }
 document.getElementById('move-word-btn').addEventListener('click', async () => {
     try {
         const wordHeader = document.getElementById('word-header');
@@ -240,6 +246,9 @@ document.getElementById('move-word-btn').addEventListener('click', async () => {
         }
 
         const orderInput = document.getElementById('word-order-input');
+        if (!orderInput) {
+            return;
+        }
         const newOrder = parseInt(orderInput.value, 10);
         if (Number.isNaN(newOrder)) {
             return;
@@ -287,6 +296,12 @@ document.getElementById('move-word-btn').addEventListener('click', async () => {
     } catch (error) {
         console.error('Ошибка при перемещении слова:', error);
     }
+}
+
+const moveWordBtn = document.getElementById('move-word-btn');
+if (moveWordBtn) {
+    moveWordBtn.addEventListener('click', handleMoveWordClick);
+}
 });
 
 
