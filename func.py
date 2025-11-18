@@ -1,6 +1,7 @@
 import json
 import datetime
 import requests
+import enchant
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -492,12 +493,13 @@ async def get_dict_fact(word_id):
         if hint_emojik:
             list_emojik = json.loads(hint_emojik.list_emoji)
 
+    context_words = json.loads(word.context)
+
     text_hc = '<p><u>Подсказка 🤖СБОЙ:</u></p>'
     for hc in hint_crash:
         text_hc += f'<p>{hc.text}</p>'
 
     if hint_emojik:
-        context_words = json.loads(word.context)
         tt_words = context_words[1:11]
 
         text_le = "<br><p><u>Подсказка 🤬ЭМОЖИК:</u></p>"
@@ -505,6 +507,12 @@ async def get_dict_fact(word_id):
             text_le += f'<p>{n + 1}. {w} - {list_emojik[n]}</p>'
     else:
         text_le = ''
+
+    dict_ru = enchant.Dict("ru_RU")
+    text_check = ''
+    for n, cont in enumerate(context_words[0:200]):
+        if not dict_ru.check(cont):
+            text_check += f'<p>🆘{n}. {cont}</p>'
 
     dict_fact = {}
     dict_fact['text'] = word_fact_text.fact if word_fact_text else ''
@@ -514,6 +522,7 @@ async def get_dict_fact(word_id):
     dict_fact['word'] = word.word
     dict_fact['crash'] = text_hc
     dict_fact['emojik'] = text_le
+    dict_fact['check'] = text_check
 
     return dict_fact
 
