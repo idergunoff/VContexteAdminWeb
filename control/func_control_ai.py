@@ -31,6 +31,7 @@ feature_names = (
         'hint_bomb',
         'hint_tail',
         'hint_metr',
+        'hint_crash',
         'mean_count_vers',
         'mean_time',
         'median_count_vers',
@@ -94,7 +95,7 @@ async def add_trying_to_model(honestly, trying_id):
             return msg
 
     (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-     count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+     count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
      mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
      skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
      median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -126,6 +127,7 @@ async def add_trying_to_model(honestly, trying_id):
         hint_bomb=hint_bomb,
         hint_tail=hint_tail,
         hint_metr=hint_metr,
+        hint_crash=hint_crash,
         mean_count_vers=mean_count_vers,
         mean_time=mean_time,
         median_count_vers=median_count_vers,
@@ -206,6 +208,7 @@ async def build_table_train():
         param.append(t.param.hint_bomb)
         param.append(t.param.hint_tail)
         param.append(t.param.hint_metr)
+        param.append(t.param.hint_crash)
 
         param.append(t.param.mean_count_vers)
         param.append(t.param.mean_time)

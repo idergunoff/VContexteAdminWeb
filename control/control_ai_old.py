@@ -43,6 +43,7 @@ def get_control_params(trying, trying_versions=False):
     hint_bomb = session.query(HintMainWord).filter_by(trying_id=trying.id, hint_type='bomb').count()
     hint_tail = session.query(HintMainWord).filter_by(trying_id=trying.id, hint_type='tail').count()
     hint_metr = session.query(HintMainWord).filter_by(trying_id=trying.id, hint_type='metr').count()
+    hint_crash = session.query(HintCrashTrying).filter_by(trying_id=trying.id).count()
 
     all_time = (trying.date_done - trying.date_trying).total_seconds()
     if not trying_versions:
@@ -118,7 +119,7 @@ def get_control_params(trying, trying_versions=False):
     # print('skewness_time_user', skewness_time_user)
 
     return (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
             mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
             skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
             median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -142,6 +143,7 @@ def build_table_train(model_id):
         param.append(t.param.hint_bomb)
         param.append(t.param.hint_tail)
         param.append(t.param.hint_metr)
+        param.append(t.param.hint_crash)
 
         param.append(t.param.mean_count_vers)
         param.append(t.param.mean_time)
@@ -263,7 +265,7 @@ def start_train():
         session_ctrl_ai.add(new_trying)
         session_ctrl_ai.commit()
         (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
             mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
             skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
             median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -283,6 +285,7 @@ def start_train():
             hint_bomb=hint_bomb,
             hint_tail=hint_tail,
             hint_metr=hint_metr,
+            hint_crash=hint_crash,
             mean_count_vers=mean_count_vers,
             mean_time=mean_time,
             median_count_vers=median_count_vers,
@@ -478,7 +481,7 @@ def start_train():
         session_ctrl_ai.add(new_trying)
         session_ctrl_ai.commit()
         (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
             mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
             skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
             median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -497,6 +500,7 @@ def start_train():
             hint_bomb=hint_bomb,
             hint_tail=hint_tail,
             hint_metr=hint_metr,
+            hint_crash=hint_crash,
             mean_count_vers=mean_count_vers,
             mean_time=mean_time,
             median_count_vers=median_count_vers,
@@ -612,7 +616,7 @@ def control_ai():
 
 def check_control_al(curr_trying, model, trying_versions=False):
     (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
             mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
             skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
             median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -626,6 +630,7 @@ def check_control_al(curr_trying, model, trying_versions=False):
     param.append(hint_bomb)
     param.append(hint_tail)
     param.append(hint_metr)
+    param.append(hint_crash)
     param.append(mean_count_vers)
     param.append(mean_time)
     param.append(median_count_vers)
@@ -654,7 +659,7 @@ def update_param():
     for t in tqdm(session_ctrl_ai.query(TryingTrain).all()):
         curr_trying = session.query(Trying).filter_by(id=t.trying_id).first()
         (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
             mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
             skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
             median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -673,6 +678,7 @@ def update_param():
             hint_bomb=hint_bomb,
             hint_tail=hint_tail,
             hint_metr=hint_metr,
+            hint_crash=hint_crash,
             mean_count_vers=mean_count_vers,
             mean_time=mean_time,
             median_count_vers=median_count_vers,

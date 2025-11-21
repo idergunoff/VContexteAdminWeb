@@ -6,7 +6,7 @@ from xgboost import XGBClassifier
 
 async def check_control_al(curr_trying, model, trying_versions=False):
     (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-     count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+     count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
      mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
      skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
      median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
@@ -20,6 +20,7 @@ async def check_control_al(curr_trying, model, trying_versions=False):
     param.append(hint_bomb)
     param.append(hint_tail)
     param.append(hint_metr)
+    param.append(hint_crash)
     param.append(mean_count_vers)
     param.append(mean_time)
     param.append(median_count_vers)
@@ -87,6 +88,9 @@ async def get_control_params(trying, trying_versions=False):
         result_hm = await session.execute(select(func.count()).select_from(HintMainWord).filter_by(trying_id=trying.id, hint_type='metr'))
         hint_metr = result_hm.scalar_one()
 
+        result_hcr = await session.execute(select(func.count()).select_from(HintCrashTrying).filter_by(trying_id=trying.id))
+        hint_crash = result_hcr.scalar_one()
+
     list_vers = [v.index for v in versions]
     list_times = [(versions[i+1].date_version - versions[i].date_version).total_seconds() for i in range(len(versions) - 1)]
     list_vers100 = json.dumps(interpolate_list(list_vers))
@@ -140,7 +144,7 @@ async def get_control_params(trying, trying_versions=False):
     skewness_time_user = 0 if np.isnan(skewness_time_user) else skewness_time_user
 
     return (list_vers100, list_times100, distr_vers15, distr_times15, count_versions, count_hint_step,
-            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr,
+            count_hint_allusion, count_hint_center, hint_pixel, hint_bomb, hint_tail, hint_metr, hint_crash,
             mean_count_vers, mean_time, median_count_vers, median_time, kurtosis_count_vers, kurtosis_time,
             skewness_count_vers, skewness_time, mean_count_vers_user, mean_time_user, median_count_vers_user,
             median_time_user, kurtosis_count_vers_user, kurtosis_time_user, skewness_count_vers_user,
