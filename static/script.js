@@ -177,7 +177,7 @@ async function onNewWordClick(wordId) {
             console.error('Ошибка загрузки данных:', error);
         }
         // Вызываем функцию для добавления обработчиков
-        enableDragAndDrop();
+//        enableDragAndDrop();
     }
 
 
@@ -339,14 +339,21 @@ async function handleRemoveContextWordClick() {
             body: JSON.stringify({ index: contextIndex }),
         });
 
+        const data = await response.json();
         if (!response.ok) {
-            throw new Error('Ошибка при удалении элемента контекста');
+            const detailMessage = typeof data === 'object' && data !== null ? data.detail : null;
+            throw new Error(detailMessage || 'Ошибка при удалении элемента контекста');
         }
 
-        await onNewWordClick(Number(wordId));
+        const selectedMonth = document.getElementById('dropdown')?.value;
+        if (selectedMonth === 'new') {
+            await onNewWordClick(Number(wordId));
+        } else {
+            await onWordClick(Number(wordId), 1);
+        }
     } catch (error) {
         console.error('Ошибка при удалении слова из контекста:', error);
-        alert('Не удалось удалить слово из контекста');
+        alert(error.message || 'Не удалось удалить слово из контекста');
     }
 }
 
