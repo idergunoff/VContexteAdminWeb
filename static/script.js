@@ -303,6 +303,59 @@ if (moveWordBtn) {
 }
 
 
+async function handleRemoveContextWordClick() {
+    try {
+        const wordHeader = document.getElementById('word-header');
+        if (!wordHeader) {
+            return;
+        }
+
+        const wordId = wordHeader.getAttribute('data-word-id');
+        if (!wordId) {
+            return;
+        }
+
+        const orderInput = document.getElementById('word-order-input');
+        if (!orderInput) {
+            return;
+        }
+
+        const contextIndex = parseInt(orderInput.value, 10);
+        if (Number.isNaN(contextIndex) || contextIndex < 0) {
+            alert('Укажите корректный номер элемента контекста');
+            return;
+        }
+
+        const confirmDelete = window.confirm(`Удалить элемент контекста с номером ${contextIndex}?`);
+        if (!confirmDelete) {
+            return;
+        }
+
+        const response = await fetch(`/delete-context/${wordId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ index: contextIndex }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при удалении элемента контекста');
+        }
+
+        await onWordClick(Number(wordId), 1);
+    } catch (error) {
+        console.error('Ошибка при удалении слова из контекста:', error);
+        alert('Не удалось удалить слово из контекста');
+    }
+}
+
+const removeContextWordBtn = document.getElementById('remove-context-word-btn');
+if (removeContextWordBtn) {
+    removeContextWordBtn.addEventListener('click', handleRemoveContextWordClick);
+}
+
+
 document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
     radio.addEventListener('change', () => {
         const header = document.getElementById('trying-header');
