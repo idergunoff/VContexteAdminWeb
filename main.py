@@ -284,6 +284,10 @@ class WordContextUpdate(BaseModel):
     order: List[dict]
 
 
+class WordContextDelete(BaseModel):
+    index: int
+
+
 @app.post("/update-context/{word_id}")
 async def update_context(word_id: int, context: WordContextUpdate):
     new_context = [i["word_text"].split('. ')[1] for i in context.order]
@@ -297,6 +301,29 @@ async def update_context(word_id: int, context: WordContextUpdate):
         word.context = json.dumps(new_context)
 
     return {"message": f"Word {word_id} updated successfully", "context": new_context}
+
+
+@app.post("/delete-context/{word_id}")
+async def delete_context_item(word_id: int, payload: WordContextDelete):
+    word_id = int(word_id)
+    async with get_session() as session:
+        word = await session.get(Word, word_id)
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        context_list = json.loads(word.context)
+
+        if payload.index < 0 or payload.index >= len(context_list):
+            raise HTTPException(status_code=400, detail="Context index out of range")
+
+        removed_item = context_list.pop(payload.index)
+        word.context = json.dumps(context_list)
+
+    return {
+        "message": f"Context item {payload.index} removed from word {word_id}",
+        "removed": removed_item,
+        "context": context_list,
+    }
 
 
 @app.get("/trying/control_ai/{trying_id}")
