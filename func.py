@@ -12,6 +12,8 @@ import numpy as np
 from connect import TOKEN_BOT
 from model import *
 
+broker = enchant.Broker()
+print(broker.list_dicts())
 
 async def get_username(user_id: int):
     async with get_session() as session:
@@ -516,9 +518,9 @@ async def get_dict_fact(word_id):
 
     dict_fact = {}
     dict_fact['text'] = word_fact_text.fact if word_fact_text else ''
-    dict_fact['photo'] = await get_link_photo_tg(word_fact_photo.fact) if word_fact_photo else 0
-    dict_fact['pixel'] = await get_link_photo_tg(hint_pixel.pixel) if hint_pixel else 0
-    dict_fact['picture'] = await get_link_photo_tg(hint_pixel.picture) if hint_pixel else 0
+    dict_fact['photo'] = await get_link_photo_tg(word_fact_photo.fact) if word_fact_photo else ''
+    dict_fact['pixel'] = await get_link_photo_tg(hint_pixel.pixel) if hint_pixel else ''
+    dict_fact['picture'] = await get_link_photo_tg(hint_pixel.picture) if hint_pixel else ''
     dict_fact['word'] = word.word
     dict_fact['crash'] = text_hc
     dict_fact['emojik'] = text_le

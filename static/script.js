@@ -288,7 +288,7 @@ async function handleMoveWordClick() {
             } else {
                 await wordsByMonth(selectedMonth);
             }
-            await onNewWordClick(Number(wordId));
+//            await onNewWordClick(Number(wordId))wordsByMonth;
         } else {
             await onWordClick(Number(wordId), 1);
         }
@@ -343,7 +343,7 @@ async function handleRemoveContextWordClick() {
             throw new Error('Ошибка при удалении элемента контекста');
         }
 
-        await onWordClick(Number(wordId), 1);
+        await onNewWordClick(Number(wordId));
     } catch (error) {
         console.error('Ошибка при удалении слова из контекста:', error);
         alert('Не удалось удалить слово из контекста');

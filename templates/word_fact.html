@@ -19,7 +19,11 @@
         <!-- Блок 1: изображение -->
         <div class="grid-item">
             <h2>Фото факта</h2>
-            <img src="{{ dict_fact.photo }}" alt="Фото факта">
+            {% if dict_fact.photo %}
+                <img src="{{ dict_fact.photo }}" alt="Фото факта">
+            {% else %}
+                <p>Фотография пока не загружена.</p>
+            {% endif %}
         </div>
 
         <!-- Блок 2: текст -->
@@ -33,13 +37,21 @@
         <!-- Блок 3: изображение -->
         <div class="grid-item">
             <h2>Подсказка PIXEL</h2>
-            <img src="{{ dict_fact.pixel }}" alt="Подсказка PIXEL">
+            {% if dict_fact.pixel %}
+                <img src="{{ dict_fact.pixel }}" alt="Подсказка PIXEL">
+            {% else %}
+                <p>Подсказка PIXEL пока не загружена.</p>
+            {% endif %}
         </div>
 
         <!-- Блок 4: изображение -->
         <div class="grid-item">
             <h2>Подсказка PIXEL (оригинал)</h2>
-            <img src="{{ dict_fact.picture }}" alt="Подсказка PIXEL (оригинал)">
+            {% if dict_fact.picture %}
+                <img src="{{ dict_fact.picture }}" alt="Подсказка PIXEL (оригинал)">
+            {% else %}
+                <p>Оригинал подсказки PIXEL пока не загружен.</p>
+            {% endif %}
         </div>
 
         <!-- Блок 5: подсказка сбой -->
