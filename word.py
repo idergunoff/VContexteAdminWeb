@@ -160,6 +160,8 @@ async def delete_word(word_id: int):
         if tryings_count and tryings_count > 0:
             raise HTTPException(status_code=400, detail="Слово уже использовалось в попытках и не может быть удалено")
 
+        deleted_order = word.order or 0
+
         await session.execute(delete(WordFact).where(WordFact.word_id == word_id))
         await session.execute(delete(WordStat).where(WordStat.word_id == word_id))
         await session.execute(delete(HintPixel).where(HintPixel.word_id == word_id))
@@ -169,5 +171,19 @@ async def delete_word(word_id: int):
         await session.execute(delete(Duel).where(Duel.word_id == word_id))
 
         await session.delete(word)
+
+        if deleted_order > 0:
+            await session.execute(
+                update(Word)
+                .where(Word.order > deleted_order)
+                .values(order=Word.order - 1)
+            )
+
+            ordered_words = await session.execute(
+                select(Word).where(Word.order > 0).order_by(Word.order)
+            )
+            for index, ordered_word in enumerate(ordered_words.scalars().all(), start=1):
+                if ordered_word.order != index:
+                    ordered_word.order = index
 
     return {"message": f"Слово '{word.word}' удалено"}
