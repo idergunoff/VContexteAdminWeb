@@ -363,6 +363,82 @@ if (removeContextWordBtn) {
 }
 
 
+async function handleDeleteWordClick() {
+    try {
+        const wordHeader = document.getElementById('word-header');
+        const wordId = wordHeader?.getAttribute('data-word-id');
+
+        if (!wordId) {
+            showCustomAlert('Выберите слово для удаления');
+            return;
+        }
+
+        const checkResponse = await fetch(`/word/${wordId}/delete-check`);
+        const checkData = await checkResponse.json();
+
+        if (!checkResponse.ok || !checkData.can_delete) {
+            const errorMessage = checkData?.message || 'Слово удалить нельзя';
+            showCustomAlert(errorMessage);
+            return;
+        }
+
+        const confirmationText = checkData.confirmation || 'Точно удалить слово вместе с контекстом?';
+        const confirmed = window.confirm(confirmationText);
+
+        if (!confirmed) {
+            return;
+        }
+
+        const deleteResponse = await fetch(`/word/${wordId}/delete`, { method: 'DELETE' });
+        const deleteData = await deleteResponse.json();
+
+        if (!deleteResponse.ok) {
+            throw new Error(deleteData?.detail || deleteData?.message || 'Не удалось удалить слово');
+        }
+
+        showCustomAlert(deleteData.message || 'Слово удалено');
+
+        const selectedMonth = document.getElementById('dropdown')?.value;
+        if (selectedMonth) {
+            await wordsByMonth(selectedMonth);
+        }
+
+        document.getElementById('word-header').textContent = 'Слова';
+        document.getElementById('word-header').removeAttribute('data-word-id');
+
+        const tryingHeader = document.getElementById('trying-header');
+        if (tryingHeader) {
+            tryingHeader.textContent = '---';
+            tryingHeader.removeAttribute('data-word-id');
+        }
+
+        const tryingList = document.getElementById('trying-list');
+        if (tryingList) {
+            tryingList.innerHTML = '<li>Нет данных по этому слову</li>';
+        }
+
+        const versionHeader = document.getElementById('version-header');
+        if (versionHeader) {
+            versionHeader.textContent = 'Версии';
+            versionHeader.removeAttribute('data-trying-id');
+        }
+
+        const versionList = document.getElementById('version-list');
+        if (versionList) {
+            versionList.innerHTML = '<li>Выберите пользователя для отображения версий</li>';
+        }
+    } catch (error) {
+        console.error('Ошибка при удалении слова:', error);
+        showCustomAlert(error.message || 'Не удалось удалить слово');
+    }
+}
+
+const deleteWordBtn = document.getElementById('delete-word-btn');
+if (deleteWordBtn) {
+    deleteWordBtn.addEventListener('click', handleDeleteWordClick);
+}
+
+
 document.querySelectorAll('input[name="trying-sort"]').forEach(radio => {
     radio.addEventListener('change', () => {
         const header = document.getElementById('trying-header');

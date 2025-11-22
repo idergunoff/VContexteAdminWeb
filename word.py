@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from model import *
@@ -107,3 +108,66 @@ async def move_word(request: MoveWordRequest):
             ]
 
         return response
+
+
+@router.get("/{word_id}/delete-check")
+async def check_delete_word(word_id: int):
+    async with get_session() as session:
+        word = await session.get(Word, word_id)
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        if word.current:
+            return JSONResponse(status_code=400, content={
+                "can_delete": False,
+                "message": "Нельзя удалить текущее слово",
+            })
+
+        if word.played or word.date_play:
+            return JSONResponse(status_code=400, content={
+                "can_delete": False,
+                "message": "Слово уже сыграно и не может быть удалено",
+            })
+
+        tryings_count = await session.scalar(
+            select(func.count()).select_from(Trying).where(Trying.word_id == word_id)
+        )
+        if tryings_count and tryings_count > 0:
+            return JSONResponse(status_code=400, content={
+                "can_delete": False,
+                "message": "Слово уже использовалось в попытках и не может быть удалено",
+            })
+
+        return {"can_delete": True, "confirmation": f"Точно удалить слово '{word.word}' вместе с контекстом?"}
+
+
+@router.delete("/{word_id}/delete")
+async def delete_word(word_id: int):
+    async with get_session() as session:
+        word = await session.get(Word, word_id)
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        if word.current:
+            raise HTTPException(status_code=400, detail="Нельзя удалить текущее слово")
+
+        if word.played or word.date_play:
+            raise HTTPException(status_code=400, detail="Слово уже сыграно и не может быть удалено")
+
+        tryings_count = await session.scalar(
+            select(func.count()).select_from(Trying).where(Trying.word_id == word_id)
+        )
+        if tryings_count and tryings_count > 0:
+            raise HTTPException(status_code=400, detail="Слово уже использовалось в попытках и не может быть удалено")
+
+        await session.execute(delete(WordFact).where(WordFact.word_id == word_id))
+        await session.execute(delete(WordStat).where(WordStat.word_id == word_id))
+        await session.execute(delete(HintPixel).where(HintPixel.word_id == word_id))
+        await session.execute(delete(HintCrash).where(HintCrash.word_id == word_id))
+        await session.execute(delete(HintEmojik).where(HintEmojik.word_id == word_id))
+        await session.execute(delete(ResultControl).where(ResultControl.word_id == word_id))
+        await session.execute(delete(Duel).where(Duel.word_id == word_id))
+
+        await session.delete(word)
+
+    return {"message": f"Слово '{word.word}' удалено"}
