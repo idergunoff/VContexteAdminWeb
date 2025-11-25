@@ -93,7 +93,21 @@ async function loadDuelVersions(duelId) {
                 if (version.delta_rank && version.delta_rank > 0) {
                     text += ` - 🍀${version.delta_rank}`;
                 }
+
+                const tooltipParts = [];
+                if (version.progress && version.progress > 0) {
+                    tooltipParts.push(`🚀 Прогресс: ${version.progress.toFixed(2)}`);
+                    text += ' 🚀';
+                } else if (version.penalty && version.penalty > 0) {
+                    tooltipParts.push(`⚠️ Пенальти: ${version.penalty.toFixed(4)}`);
+                    text += ' ⚠️';
+                }
+
                 li.textContent = text;
+                if (tooltipParts.length > 0) {
+                    li.title = tooltipParts.join('\n');
+                }
+
                 if (version.bg_color) {
                     li.style.backgroundColor = version.bg_color;
                 } else {

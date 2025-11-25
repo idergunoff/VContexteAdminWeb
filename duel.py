@@ -3,6 +3,8 @@
 
 import calendar
 import datetime
+from math import log
+from typing import Sequence
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -16,6 +18,127 @@ from graph import graph_duel_versions_plotly
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
+
+
+def _build_shared_best_history(
+    attempts: Sequence[tuple[str | int, int]],
+    players: Sequence[str | int],
+) -> dict[str | int, list[int]]:
+    """Return best rank before each attempt for provided players."""
+
+    histories = {player: [] for player in players}
+    if not attempts:
+        return histories
+
+    best_rank: int | None = None
+    for player, rank in attempts:
+        if player not in histories:
+            continue
+
+        baseline = rank if best_rank is None else best_rank
+        histories[player].append(baseline)
+        best_rank = rank if best_rank is None else min(best_rank, rank)
+    return histories
+
+
+def _log_progress(
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None = None,
+    gamma: float = 10,
+    scale: float = 100,
+) -> float:
+    """
+    Логарифмическая шкала прогресса.
+    Progress = scale · Σ ln((old_best + γ)/(new_best + γ))
+
+    ranks — список рангов после каждой попытки.
+    """
+    if not ranks:
+        return 0.0
+
+    best = shared_best_before[0] if shared_best_before else ranks[0]
+    progress = 0.0
+    start_index = 0 if shared_best_before else 1
+
+    for idx, r in enumerate(ranks[start_index:], start=start_index):
+        current_best = shared_best_before[idx] if shared_best_before else best
+        if r < current_best:  # улучшение
+            progress += log((current_best + gamma) / (r + gamma))
+            best = r
+        else:
+            best = min(current_best, r)
+
+        if shared_best_before and idx + 1 < len(shared_best_before):
+            best = min(shared_best_before[idx + 1], best)
+
+    return progress * scale
+
+
+def _quality_penalty(
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None = None,
+    p: float = 50000,
+) -> float:
+    """
+    QualityPenalty = Σ max(0, r_i − best_{i-1}) / p
+    Штраф за «плохие» попытки, которые увеличивают ранг относительно лучшего.
+    """
+    if not ranks:
+        return 0.0
+
+    best = shared_best_before[0] if shared_best_before else ranks[0]
+    penalty = 0.0
+    start_index = 0 if shared_best_before else 1
+
+    for idx, r in enumerate(ranks[start_index:], start=start_index):
+        current_best = shared_best_before[idx] if shared_best_before else best
+        if r > current_best:  # ушёл дальше от секрета
+            penalty += (r - current_best) / p
+            best = current_best
+        else:
+            best = r
+
+        if shared_best_before and idx + 1 < len(shared_best_before):
+            best = min(shared_best_before[idx + 1], best)
+
+    return penalty
+
+
+def _progress_penalty_steps(
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None = None,
+    *,
+    gamma: float = 10,
+    scale: float = 100,
+    p: float = 50000,
+) -> tuple[list[float], list[float]]:
+    """Calculate per-attempt progress and penalty in a single pass."""
+
+    if not ranks:
+        return [], []
+
+    best = shared_best_before[0] if shared_best_before else ranks[0]
+    start_index = 0 if shared_best_before else 1
+
+    progress_steps = [0.0 for _ in ranks]
+    penalty_steps = [0.0 for _ in ranks]
+
+    for idx, r in enumerate(ranks[start_index:], start=start_index):
+        current_best = shared_best_before[idx] if shared_best_before else best
+        if r < current_best:  # improvement
+            progress_steps[idx] = log((current_best + gamma) / (r + gamma)) * scale
+            best = r
+        else:
+            if r > current_best:
+                penalty_steps[idx] = (r - current_best) / p
+                best = current_best
+            else:
+                best = r
+
+        if shared_best_before and idx + 1 < len(shared_best_before):
+            best = min(shared_best_before[idx + 1], best)
+
+    return progress_steps, penalty_steps
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -230,19 +353,47 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
         )
         rows = result_v.all()
 
-        versions = [
-            {
-                "user_id": user.id,
-                "text": dv.text,
-                "idx_global": dv.idx_global,
-                "idx_personal": dv.idx_personal,
-                "delta_rank": dv.delta_rank,
-                "ts": dv.ts.isoformat() if dv.ts else None,
-                "player": player_map.get(dv.user_id),
-                "bg_color": get_bg_color(dv.idx_global),
-            }
-            for dv, user in rows
-        ]
+        players = list(player_map.keys())
+        attempts = [(dv.user_id, dv.idx_global) for dv, _ in rows]
+        shared_histories = _build_shared_best_history(attempts, players)
+
+        rank_histories: dict[int, list[int]] = {pid: [] for pid in players}
+        attempt_indices: dict[int, int] = {pid: 0 for pid in players}
+
+        collected_versions: list[tuple[DuelVersion, User, int]] = []
+
+        versions = []
+        for dv, user in rows:
+            pid = dv.user_id
+            rank_histories[pid].append(dv.idx_global)
+            collected_versions.append((dv, user, pid))
+
+        progress_steps: dict[int, list[float]] = {}
+        penalty_steps: dict[int, list[float]] = {}
+
+        for pid, ranks in rank_histories.items():
+            shared_best = shared_histories.get(pid, [])[: len(ranks)]
+            progress_steps[pid], penalty_steps[pid] = _progress_penalty_steps(
+                ranks, shared_best
+            )
+
+        for dv, user, pid in collected_versions:
+            attempt_idx = attempt_indices[pid]
+            attempt_indices[pid] += 1
+            versions.append(
+                {
+                    "user_id": user.id,
+                    "text": dv.text,
+                    "idx_global": dv.idx_global,
+                    "idx_personal": dv.idx_personal,
+                    "delta_rank": dv.delta_rank,
+                    "ts": dv.ts.isoformat() if dv.ts else None,
+                    "player": player_map.get(dv.user_id),
+                    "bg_color": get_bg_color(dv.idx_global),
+                    "progress": progress_steps.get(pid, [0.0])[attempt_idx],
+                    "penalty": penalty_steps.get(pid, [0.0])[attempt_idx],
+                }
+            )
 
     return JSONResponse(content={**duel_info, "versions": versions})
 
