@@ -3,6 +3,7 @@
 
 import calendar
 import datetime
+import json
 from math import log
 from typing import Sequence
 
@@ -14,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from model import *
 from func import get_bg_color
 from graph import graph_duel_versions_plotly
+from sqlalchemy import case
 
 
 router = APIRouter()
@@ -396,6 +398,87 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             )
 
     return JSONResponse(content={**duel_info, "versions": versions})
+
+
+@router.get("/stats", response_class=HTMLResponse)
+async def duel_stats(request: Request):
+    async with get_session() as session:
+        result = await session.execute(
+            select(
+                DuelParticipant.duel_id,
+                DuelParticipant.user_id,
+                DuelParticipant.coins_delta,
+                DuelParticipant.vp_delta,
+                Duel.is_draw,
+                Duel.winner_id,
+                func.count(DuelVersion.id).label("version_count"),
+                func.sum(
+                    case(
+                        (DuelVersion.delta_rank > 0, 1),
+                        else_=0,
+                    )
+                ).label("success_count"),
+            )
+            .join(Duel, DuelParticipant.duel_id == Duel.id)
+            .join(
+                DuelVersion,
+                (DuelVersion.duel_id == DuelParticipant.duel_id)
+                & (DuelVersion.user_id == DuelParticipant.user_id),
+                isouter=True,
+            )
+            .group_by(
+                DuelParticipant.duel_id,
+                DuelParticipant.user_id,
+                DuelParticipant.coins_delta,
+                DuelParticipant.vp_delta,
+                Duel.is_draw,
+                Duel.winner_id,
+            )
+        )
+        rows = result.all()
+
+    def _empty_bucket() -> dict:
+        return {
+            "coins_by_versions": [],
+            "vp_by_versions": [],
+            "coins_by_success_ratio": [],
+            "vp_by_success_ratio": [],
+        }
+
+    stats = {"winners": _empty_bucket(), "losers": _empty_bucket()}
+
+    for (
+        _duel_id,
+        user_id,
+        coins,
+        vp,
+        is_draw,
+        winner_id,
+        version_count,
+        success_count,
+    ) in rows:
+        versions = version_count or 0
+        successes = success_count or 0
+        success_ratio = successes / versions if versions else 0.0
+
+        bucket = stats["losers"]
+        if not is_draw and winner_id and winner_id == user_id:
+            bucket = stats["winners"]
+
+        bucket["coins_by_versions"].append({"x": versions, "y": coins or 0})
+        bucket["vp_by_versions"].append({"x": versions, "y": vp or 0})
+        bucket["coins_by_success_ratio"].append(
+            {"x": success_ratio, "y": coins or 0}
+        )
+        bucket["vp_by_success_ratio"].append({"x": success_ratio, "y": vp or 0})
+
+    return templates.TemplateResponse(
+        "duel_stats.html",
+        {
+            "request": request,
+            "stats_json": json.dumps(stats),
+        },
+    )
 
 
 @router.get("/graph_vers/{duel_id}", response_class=HTMLResponse)

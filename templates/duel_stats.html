@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика дуэлей</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .stats-layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 12px;
+        }
+
+        .stats-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stats-actions button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: #3b82f6;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .stats-actions button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+<header class="header">
+    <h1 class="title">Графики статистики дуэлей</h1>
+    <button class="logout-button" onclick="window.location.href='/logout'">Выйти</button>
+</header>
+
+<div class="stats-layout">
+    <div class="stats-actions">
+        <button onclick="window.location.href='/duel'">⬅️ Назад</button>
+        <span>Облако точек по всем дуэлям с трендовыми линиями.</span>
+    </div>
+
+    <div class="stats-grid">
+        <div class="chart-card"><div id="w-coins-versions"></div></div>
+        <div class="chart-card"><div id="l-coins-versions"></div></div>
+        <div class="chart-card"><div id="w-vp-versions"></div></div>
+        <div class="chart-card"><div id="l-vp-versions"></div></div>
+        <div class="chart-card"><div id="w-coins-ratio"></div></div>
+        <div class="chart-card"><div id="l-coins-ratio"></div></div>
+        <div class="chart-card"><div id="w-vp-ratio"></div></div>
+        <div class="chart-card"><div id="l-vp-ratio"></div></div>
+    </div>
+</div>
+
+<script>
+    const stats = {{ stats_json | safe }};
+
+    function regressionLine(points) {
+        if (!points || points.length < 2) {
+            return { x: [], y: [], mode: 'lines', name: 'Тренд', line: { color: 'orange' } };
+        }
+
+        const n = points.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        const xs = points.map(p => p.x);
+        const ys = points.map(p => p.y);
+
+        xs.forEach((x, idx) => {
+            const y = ys[idx];
+            sumX += x;
+            sumY += y;
+            sumXY += x * y;
+            sumX2 += x * x;
+        });
+
+        const denominator = n * sumX2 - sumX * sumX;
+        const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
+        const intercept = (sumY - slope * sumX) / n;
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+
+        return {
+            x: [minX, maxX],
+            y: [slope * minX + intercept, slope * maxX + intercept],
+            mode: 'lines',
+            name: 'Тренд',
+            line: { color: 'orange' }
+        };
+    }
+
+    function renderScatter(containerId, points, title, xTitle, yTitle) {
+        const x = points.map(p => p.x);
+        const y = points.map(p => p.y);
+        const trend = regressionLine(points);
+
+        Plotly.newPlot(containerId, [
+            {
+                x,
+                y,
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Данные',
+                marker: { opacity: 0.7 }
+            },
+            trend
+        ], {
+            title,
+            xaxis: { title: xTitle },
+            yaxis: { title: yTitle },
+            margin: { t: 40, l: 60, r: 20, b: 60 }
+        }, { displaylogo: false });
+    }
+
+    renderScatter('w-coins-versions', stats.winners.coins_by_versions, 'Победители: Coins от количества версий', 'Количество версий', 'Coins');
+    renderScatter('l-coins-versions', stats.losers.coins_by_versions, 'Проигравшие: Coins от количества версий', 'Количество версий', 'Coins');
+    renderScatter('w-vp-versions', stats.winners.vp_by_versions, 'Победители: VP от количества версий', 'Количество версий', 'VP');
+    renderScatter('l-vp-versions', stats.losers.vp_by_versions, 'Проигравшие: VP от количества версий', 'Количество версий', 'VP');
+    renderScatter('w-coins-ratio', stats.winners.coins_by_success_ratio, 'Победители: Coins от доли успешных версий', 'Доля успешных версий', 'Coins');
+    renderScatter('l-coins-ratio', stats.losers.coins_by_success_ratio, 'Проигравшие: Coins от доли успешных версий', 'Доля успешных версий', 'Coins');
+    renderScatter('w-vp-ratio', stats.winners.vp_by_success_ratio, 'Победители: VP от доли успешных версий', 'Доля успешных версий', 'VP');
+    renderScatter('l-vp-ratio', stats.losers.vp_by_success_ratio, 'Проигравшие: VP от доли успешных версий', 'Доля успешных версий', 'VP');
+</script>
+</body>
+</html>

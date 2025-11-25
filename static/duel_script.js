@@ -164,6 +164,10 @@ document.getElementById('duel-version-graph-btn').addEventListener('click', asyn
     }
 });
 
+document.getElementById('duel-stats-btn').addEventListener('click', () => {
+    window.open('/duel/stats', '_blank');
+});
+
 function setBgItem(index, listItem) {
     if (index >= 5000) {
         listItem.style.backgroundColor = '#f4bcfe';
