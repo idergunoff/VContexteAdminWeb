@@ -72,13 +72,28 @@ async function loadDuelVersions(duelId) {
 
         const infoBlock = document.getElementById('duel-info');
         if (infoBlock) {
+            const versionStats = new Map();
+            if (Array.isArray(data.versions)) {
+                data.versions.forEach(v => {
+                    const stats = versionStats.get(v.user_id) || { total: 0, improved: 0 };
+                    stats.total += 1;
+                    if (v.progress && v.progress > 0) stats.improved += 1;
+                    versionStats.set(v.user_id, stats);
+                });
+            }
+
             const lines = [];
             if (data.word) lines.push(`🖋 ${data.word}`); // 🖋
             if (data.date) lines.push(`📅 ${data.date}`); // 📅
             lines.push(`🕛 ${data.start_time || ''} / 🏁 ${data.end_time || ''}`); // 🕛 / 🏁
             if (Array.isArray(data.participants)) {
                 data.participants.forEach(p => {
-                    lines.push(`👥 ${p.name} (${p.version_count})${data.winner_id === p.id ? ' 👑' : ''} 💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`); // 👥 ... 👑
+                    const stats = versionStats.get(p.id) || { total: p.version_count ?? 0, improved: 0 };
+                    const total = p.version_count ?? stats.total ?? 0;
+                    const improved = stats.improved ?? 0;
+                    const notImproved = Math.max(total - improved, 0);
+
+                    lines.push(`👥 ${p.name} (${total} 👍${improved}/👎${notImproved})${data.winner_id === p.id ? ' 👑' : ''} 💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`); // 👥 ... 👑
                 });
             }
             infoBlock.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
