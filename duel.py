@@ -141,6 +141,9 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 User.username.label("user_name"),
                 func.count(DuelVersion.id).label("version_count"),
                 DuelParticipant.joined_at,
+                DuelParticipant.coins_delta.label("coins_delta"),
+                DuelParticipant.vp_delta.label("vp_delta"),
+                DuelParticipant.du_r_delta.label("du_r_delta"),
             )
             .join(Word, Duel.word_id == Word.id, isouter=True)
             .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
@@ -161,6 +164,9 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 User.id,
                 User.username,
                 DuelParticipant.joined_at,
+                DuelParticipant.coins_delta,
+                DuelParticipant.vp_delta,
+                DuelParticipant.du_r_delta,
             )
             .order_by(DuelParticipant.joined_at)
         )
@@ -196,12 +202,18 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             user_name,
             version_count,
             _,
+            coins_delta,
+            vp_delta,
+            du_r_delta,
         ) in info_rows:
             duel_info["participants"].append(
                 {
                     "id": user_id,
                     "name": user_name,
                     "version_count": version_count,
+                    "coins": coins_delta,
+                    "vp": vp_delta,
+                    "du_r": du_r_delta,
                 }
             )
 

@@ -78,7 +78,7 @@ async function loadDuelVersions(duelId) {
             lines.push(`🕛 ${data.start_time || ''} / 🏁 ${data.end_time || ''}`); // 🕛 / 🏁
             if (Array.isArray(data.participants)) {
                 data.participants.forEach(p => {
-                    lines.push(`👥 ${p.name} (${p.version_count})${data.winner_id === p.id ? ' 👑' : ''}`); // 👥 ... 👑
+                    lines.push(`👥 ${p.name} (${p.version_count})${data.winner_id === p.id ? ' 👑' : ''} 💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`); // 👥 ... 👑
                 });
             }
             infoBlock.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
