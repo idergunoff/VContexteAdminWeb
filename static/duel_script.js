@@ -103,7 +103,23 @@ async function loadDuelVersions(duelId) {
                     const improved = stats.improved ?? 0;
                     const notImproved = Math.max(total - improved, 0);
 
+                    const vpParts = [];
+                    if (typeof p.vp_progress === 'number') {
+                        vpParts.push(`🚀${p.vp_progress}`);
+                    }
+                    if (typeof p.vp_efficiency === 'number') {
+                        vpParts.push(`⚡${p.vp_efficiency}`);
+                    }
+                    if (typeof p.vp_quality_penalty === 'number') {
+                        vpParts.push(`⚠️${p.vp_quality_penalty}`);
+                    }
+
+                    const vpDetails = vpParts.length ? ` (${vpParts.join(' / ')})` : '';
+
                     lines.push(`👥 ${p.name} (${total} 👍${improved}/👎${notImproved})${data.winner_id === p.id ? ' 👑' : ''} 💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`); // 👥 ... 👑
+                    if (vpDetails) {
+                        lines.push(`↳ VP: ${vpDetails}`);
+                    }
                 });
             }
             infoBlock.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
