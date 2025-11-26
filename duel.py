@@ -43,67 +43,6 @@ def _build_shared_best_history(
     return histories
 
 
-def _log_progress(
-    ranks: list[int],
-    shared_best_before: Sequence[int] | None = None,
-    gamma: float = 10,
-    scale: float = 100,
-) -> float:
-    """
-    Логарифмическая шкала прогресса.
-    Progress = scale · Σ ln((old_best + γ)/(new_best + γ))
-
-    ranks — список рангов после каждой попытки.
-    """
-    if not ranks:
-        return 0.0
-
-    best = shared_best_before[0] if shared_best_before else ranks[0]
-    progress = 0.0
-    start_index = 0 if shared_best_before else 1
-
-    for idx, r in enumerate(ranks[start_index:], start=start_index):
-        current_best = shared_best_before[idx] if shared_best_before else best
-        if r < current_best:  # улучшение
-            progress += log((current_best + gamma) / (r + gamma))
-            best = r
-        else:
-            best = min(current_best, r)
-
-        if shared_best_before and idx + 1 < len(shared_best_before):
-            best = min(shared_best_before[idx + 1], best)
-
-    return progress * scale
-
-
-def _quality_penalty(
-    ranks: list[int],
-    shared_best_before: Sequence[int] | None = None,
-    p: float = 50000,
-) -> float:
-    """
-    QualityPenalty = Σ max(0, r_i − best_{i-1}) / p
-    Штраф за «плохие» попытки, которые увеличивают ранг относительно лучшего.
-    """
-    if not ranks:
-        return 0.0
-
-    best = shared_best_before[0] if shared_best_before else ranks[0]
-    penalty = 0.0
-    start_index = 0 if shared_best_before else 1
-
-    for idx, r in enumerate(ranks[start_index:], start=start_index):
-        current_best = shared_best_before[idx] if shared_best_before else best
-        if r > current_best:  # ушёл дальше от секрета
-            penalty += (r - current_best) / p
-            best = current_best
-        else:
-            best = r
-
-        if shared_best_before and idx + 1 < len(shared_best_before):
-            best = min(shared_best_before[idx + 1], best)
-
-    return penalty
 
 
 def _progress_penalty_steps(
@@ -111,7 +50,7 @@ def _progress_penalty_steps(
     shared_best_before: Sequence[int] | None = None,
     *,
     gamma: float = 10,
-    scale: float = 100,
+    scale: float = 50,
     p: float = 50000,
 ) -> tuple[list[float], list[float]]:
     """Calculate per-attempt progress and penalty in a single pass."""
@@ -131,6 +70,7 @@ def _progress_penalty_steps(
             progress_steps[idx] = log((current_best + gamma) / (r + gamma)) * scale
             best = r
         else:
+            r = 30000 if r == 999999 else r
             if r > current_best:
                 penalty_steps[idx] = (r - current_best) / p
                 best = current_best
