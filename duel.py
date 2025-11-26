@@ -426,6 +426,11 @@ async def duel_stats(request: Request):
                 & (DuelVersion.user_id == DuelParticipant.user_id),
                 isouter=True,
             )
+            .filter(
+                Duel.started_at.is_not(None),
+                Duel.finished_at.is_not(None),
+                func.extract("epoch", Duel.finished_at - Duel.started_at) <= 30 * 60,
+            )
             .group_by(
                 DuelParticipant.duel_id,
                 DuelParticipant.user_id,
