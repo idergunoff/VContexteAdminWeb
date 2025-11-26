@@ -457,6 +457,9 @@ async def duel_stats(request: Request):
         version_count,
         success_count,
     ) in rows:
+        if coins is not None and coins < 0:
+            continue
+
         versions = version_count or 0
         successes = success_count or 0
         success_ratio = successes / versions if versions else 0.0
