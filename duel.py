@@ -4,6 +4,7 @@
 import calendar
 import datetime
 import json
+from enum import Enum
 from math import log
 from typing import Sequence
 
@@ -106,6 +107,60 @@ def _quality_penalty(
     return penalty
 
 
+def _eff_norm(
+    time_sec: int,
+    attempts: int,
+    avg_time: int | None = None,
+    avg_attempts: int | None = None,
+) -> float:
+    """
+    Normalized efficiency (0–1), combining time and attempts.
+    """
+
+    base_time = avg_time if avg_time and avg_time > 0 else 900
+    base_attempts = avg_attempts if avg_attempts and avg_attempts > 0 else 100
+
+    time_score = max(0, (base_time - time_sec) / base_time)
+    guess_score = max(0, (base_attempts - attempts) / base_attempts)
+
+    return 0.5 * (time_score + guess_score)
+
+
+class Outcome(Enum):
+    WIN = 1
+    DRAW = 0.5
+    LOSS = 0
+
+
+def _vp_components(
+    *,
+    outcome: Outcome,
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None,
+    time_sec: int,
+    attempts: int,
+    avg_time_ref: int | None = None,
+    avg_attempts_ref: int | None = None,
+) -> tuple[float, float, float]:
+    """Return VP component scores: (progress, efficiency, quality_penalty)."""
+
+    progress = _log_progress(ranks, shared_best_before)
+    progress_score = min(progress, 120)
+
+    progress_factor = min(1.0, progress / 50) if progress > 0 else 0.0
+    efficiency = 0.0
+    if outcome is Outcome.WIN:
+        efficiency = (
+            _eff_norm(time_sec, attempts, avg_time_ref, avg_attempts_ref)
+            * 80
+            * progress_factor
+        )
+
+    qp = _quality_penalty(ranks, shared_best_before)
+
+    return progress_score, efficiency, qp
+
+
 def _progress_penalty_steps(
     ranks: list[int],
     shared_best_before: Sequence[int] | None = None,
@@ -180,6 +235,7 @@ async def get_month_duel(month: str):
                 Duel.started_at,
                 Duel.finished_at,
                 Duel.winner_id,
+                Duel.is_draw,
                 Word.word,
                 User.id.label("user_id"),
                 User.username.label("user_name"),
@@ -261,6 +317,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 Duel.started_at,
                 Duel.finished_at,
                 Duel.winner_id,
+                Duel.is_draw,
                 Word.word,
                 User.id.label("user_id"),
                 User.username.label("user_name"),
@@ -285,6 +342,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 Duel.started_at,
                 Duel.finished_at,
                 Duel.winner_id,
+                Duel.is_draw,
                 Word.word,
                 User.id,
                 User.username,
@@ -297,14 +355,22 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
         )
         info_rows = result_info.all()
 
+        duel_started_at: datetime.datetime | None = None
+        duel_finished_at: datetime.datetime | None = None
+        duel_is_draw: bool | None = None
+
         if info_rows:
-            created, started, finished, winner_id, word, *_ = info_rows[0]
+            created, started, finished, winner_id, is_draw, word, *_ = info_rows[0]
+            duel_started_at = started
+            duel_finished_at = finished
+            duel_is_draw = is_draw
             duel_info = {
                 "word": word or "",
                 "date": created.strftime("%d.%m.%Y"),
                 "start_time": started.strftime("%H:%M:%S") if started else None,
                 "end_time": finished.strftime("%H:%M:%S") if finished else None,
                 "winner_id": winner_id,
+                "is_draw": is_draw,
                 "participants": [],
             }
         else:
@@ -314,6 +380,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 "start_time": None,
                 "end_time": None,
                 "winner_id": None,
+                "is_draw": None,
                 "participants": [],
             }
 
@@ -361,6 +428,9 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
 
         rank_histories: dict[int, list[int]] = {pid: [] for pid in players}
         attempt_indices: dict[int, int] = {pid: 0 for pid in players}
+        last_attempt_ts: dict[int, datetime.datetime | None] = {
+            pid: None for pid in players
+        }
 
         collected_versions: list[tuple[DuelVersion, User, int]] = []
 
@@ -369,6 +439,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             pid = dv.user_id
             rank_histories[pid].append(dv.idx_global)
             collected_versions.append((dv, user, pid))
+            last_attempt_ts[pid] = dv.ts
 
         progress_steps: dict[int, list[float]] = {}
         penalty_steps: dict[int, list[float]] = {}
@@ -396,6 +467,44 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                     "penalty": penalty_steps.get(pid, [0.0])[attempt_idx],
                 }
             )
+
+        total_attempts = len(rows)
+
+        for participant in duel_info["participants"]:
+            pid = participant["id"]
+            ranks = rank_histories.get(pid, [])
+            shared_best = shared_histories.get(pid, [])[: len(ranks)]
+
+            if duel_started_at:
+                end_time = last_attempt_ts.get(pid) or duel_finished_at or duel_started_at
+                time_sec = max(
+                    0, int((end_time - duel_started_at).total_seconds())
+                )
+            else:
+                time_sec = 0
+
+            attempts_for_eff = total_attempts or len(ranks) or 0
+            outcome = (
+                Outcome.DRAW
+                if duel_is_draw
+                else Outcome.WIN
+                if duel_info.get("winner_id") == pid
+                else Outcome.LOSS
+            )
+
+            progress_score, efficiency_score, qp = _vp_components(
+                outcome=outcome,
+                ranks=ranks,
+                shared_best_before=shared_best,
+                time_sec=time_sec,
+                attempts=attempts_for_eff,
+                avg_time_ref=None,
+                avg_attempts_ref=None,
+            )
+
+            participant["vp_progress"] = round(progress_score, 2)
+            participant["vp_efficiency"] = round(efficiency_score, 2)
+            participant["vp_quality_penalty"] = round(qp, 4)
 
     return JSONResponse(content={**duel_info, "versions": versions})
 
