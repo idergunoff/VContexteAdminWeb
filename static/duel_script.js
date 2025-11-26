@@ -24,14 +24,24 @@ async function duelsByMonth(selectedMonth) {
                 header.textContent = `${duel.date}. ${duel.word}`;
                 listItem.appendChild(header);
 
+                const participants = Array.isArray(duel.participants) ? duel.participants : [];
+
                 const firstLine = document.createElement('div');
-                const first = duel.participants[0];
-                firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
+                const first = participants[0];
+                if (first) {
+                    firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
+                } else {
+                    firstLine.textContent = '—';
+                }
                 listItem.appendChild(firstLine);
 
                 const secondLine = document.createElement('div');
-                const second = duel.participants[1];
-                secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
+                const second = participants[1];
+                if (second) {
+                    secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
+                } else {
+                    secondLine.textContent = '—';
+                }
                 listItem.appendChild(secondLine);
 
                 listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration} минут`;
