@@ -154,6 +154,60 @@ def _vp_components(
     return progress_score, efficiency, qp
 
 
+def _eff_norm(
+    time_sec: int,
+    attempts: int,
+    avg_time: int | None = None,
+    avg_attempts: int | None = None,
+) -> float:
+    """
+    Normalized efficiency (0–1), combining time and attempts.
+    """
+
+    base_time = avg_time if avg_time and avg_time > 0 else 900
+    base_attempts = avg_attempts if avg_attempts and avg_attempts > 0 else 100
+
+    time_score = max(0, (base_time - time_sec) / base_time)
+    guess_score = max(0, (base_attempts - attempts) / base_attempts)
+
+    return 0.5 * (time_score + guess_score)
+
+
+class Outcome(Enum):
+    WIN = 1
+    DRAW = 0.5
+    LOSS = 0
+
+
+def _vp_components(
+    *,
+    outcome: Outcome,
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None,
+    time_sec: int,
+    attempts: int,
+    avg_time_ref: int | None = None,
+    avg_attempts_ref: int | None = None,
+) -> tuple[float, float, float]:
+    """Return VP component scores: (progress, efficiency, quality_penalty)."""
+
+    progress = _log_progress(ranks, shared_best_before)
+    progress_score = min(progress, 120)
+
+    progress_factor = min(1.0, progress / 50) if progress > 0 else 0.0
+    efficiency = 0.0
+    if outcome is Outcome.WIN:
+        efficiency = (
+            _eff_norm(time_sec, attempts, avg_time_ref, avg_attempts_ref)
+            * 80
+            * progress_factor
+        )
+
+    qp = _quality_penalty(ranks, shared_best_before)
+
+    return progress_score, efficiency, qp
+
+
 def _progress_penalty_steps(
     ranks: list[int],
     shared_best_before: Sequence[int] | None = None,
@@ -382,6 +436,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             }
 
         for (
+            _,
             _,
             _,
             _,
