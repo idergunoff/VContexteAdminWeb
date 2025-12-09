@@ -353,6 +353,27 @@ async def get_duels_by_users(ids: str | None = None):
 
     return JSONResponse(content={"duels": duels})
 
+    return JSONResponse(content={"duels": duels})
+
+
+@router.get("/by_users")
+async def get_duels_by_users(ids: str | None = None):
+    if not ids:
+        return JSONResponse(content={"duels": []})
+
+    try:
+        user_ids = {int(i) for i in ids.split(",") if i}
+    except ValueError:
+        return JSONResponse(content={"duels": []})
+
+    if not user_ids:
+        return JSONResponse(content={"duels": []})
+
+    async with get_session() as session:
+        duels = await _load_duels(session, [DuelParticipant.user_id.in_(user_ids)])
+
+    return JSONResponse(content={"duels": duels})
+
 
 @router.get("/versions/{duel_id}")
 async def get_duel_versions(duel_id: int, sort: str = "time"):
@@ -403,35 +424,38 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
         )
         info_rows = result_info.all()
 
-        duel_started_at: datetime.datetime | None = None
-        duel_finished_at: datetime.datetime | None = None
-        duel_is_draw: bool | None = None
-
-        if info_rows:
-            created, started, finished, winner_id, is_draw, word_id, word, *_ = info_rows[0]
-            duel_started_at = started
-            duel_finished_at = finished
-            duel_is_draw = is_draw
-            duel_info = {
-                "word": word or "",
-                "word_id": word_id,
-                "date": created.strftime("%d.%m.%Y"),
-                "start_time": started.strftime("%H:%M:%S") if started else None,
-                "end_time": finished.strftime("%H:%M:%S") if finished else None,
-                "winner_id": winner_id,
-                "is_draw": is_draw,
-                "participants": [],
-            }
-        else:
-            duel_info = {
+        if not info_rows:
+            empty_payload = {
                 "word": "",
+                "word_id": None,
                 "date": "",
                 "start_time": None,
                 "end_time": None,
                 "winner_id": None,
                 "is_draw": None,
                 "participants": [],
+                "versions": [],
             }
+            return JSONResponse(content=empty_payload, status_code=404)
+
+        duel_started_at: datetime.datetime | None = None
+        duel_finished_at: datetime.datetime | None = None
+        duel_is_draw: bool | None = None
+
+        created, started, finished, winner_id, is_draw, word_id, word, *_ = info_rows[0]
+        duel_started_at = started
+        duel_finished_at = finished
+        duel_is_draw = is_draw
+        duel_info = {
+            "word": word or "",
+            "word_id": word_id,
+            "date": created.strftime("%d.%m.%Y") if created else "",
+            "start_time": started.strftime("%H:%M:%S") if started else None,
+            "end_time": finished.strftime("%H:%M:%S") if finished else None,
+            "winner_id": winner_id,
+            "is_draw": is_draw,
+            "participants": [],
+        }
 
         for (
             _,
