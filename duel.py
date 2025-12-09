@@ -349,28 +349,20 @@ async def get_duels_by_users(ids: str | None = None):
         return JSONResponse(content={"duels": []})
 
     async with get_session() as session:
-        duels = await _load_duels(session, [DuelParticipant.user_id.in_(user_ids)])
+        duel_ids_result = await session.execute(
+            select(Duel.id)
+            .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
+            .filter(
+                Duel.status != "cancelled",
+                DuelParticipant.user_id.in_(user_ids),
+            )
+        )
 
-    return JSONResponse(content={"duels": duels})
+        duel_ids = {row[0] for row in duel_ids_result.fetchall()}
+        if not duel_ids:
+            return JSONResponse(content={"duels": []})
 
-    return JSONResponse(content={"duels": duels})
-
-
-@router.get("/by_users")
-async def get_duels_by_users(ids: str | None = None):
-    if not ids:
-        return JSONResponse(content={"duels": []})
-
-    try:
-        user_ids = {int(i) for i in ids.split(",") if i}
-    except ValueError:
-        return JSONResponse(content={"duels": []})
-
-    if not user_ids:
-        return JSONResponse(content={"duels": []})
-
-    async with get_session() as session:
-        duels = await _load_duels(session, [DuelParticipant.user_id.in_(user_ids)])
+        duels = await _load_duels(session, [Duel.id.in_(duel_ids)])
 
     return JSONResponse(content={"duels": duels})
 
@@ -458,6 +450,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
         }
 
         for (
+            _,
             _,
             _,
             _,

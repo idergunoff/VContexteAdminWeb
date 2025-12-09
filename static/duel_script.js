@@ -28,19 +28,15 @@ function createDuelListItem(duel) {
     const first = participants[0];
     if (first) {
         firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
-    } else {
-        firstLine.textContent = '—';
+        listItem.appendChild(firstLine);
     }
-    listItem.appendChild(firstLine);
 
-    const secondLine = document.createElement('div');
-    const second = participants[1];
+    const second = participants.find((p, idx) => idx !== 0);
     if (second) {
+        const secondLine = document.createElement('div');
         secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
-    } else {
-        secondLine.textContent = '—';
+        listItem.appendChild(secondLine);
     }
-    listItem.appendChild(secondLine);
 
     listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration} минут`;
 
