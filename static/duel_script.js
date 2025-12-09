@@ -7,6 +7,62 @@ document.getElementById('duels-back-btn').addEventListener('click', () => {
 });
 
 
+const currentDuelMeta = {
+    id: null,
+    wordId: null,
+    word: '',
+    participants: [],
+};
+
+
+function createDuelListItem(duel) {
+    const listItem = document.createElement('li');
+
+    const header = document.createElement('div');
+    header.textContent = `${duel.date}. ${duel.word}`;
+    listItem.appendChild(header);
+
+    const participants = Array.isArray(duel.participants) ? duel.participants : [];
+
+    const firstLine = document.createElement('div');
+    const first = participants[0];
+    if (first) {
+        firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
+    } else {
+        firstLine.textContent = '—';
+    }
+    listItem.appendChild(firstLine);
+
+    const secondLine = document.createElement('div');
+    const second = participants[1];
+    if (second) {
+        secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
+    } else {
+        secondLine.textContent = '—';
+    }
+    listItem.appendChild(secondLine);
+
+    listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration} минут`;
+
+    listItem.dataset.duelId = duel.id;
+    listItem.addEventListener('click', () => loadDuelVersions(duel.id));
+
+    return listItem;
+}
+
+
+function renderDuelList(target, duels) {
+    target.innerHTML = '';
+    if (duels.length > 0) {
+        duels.forEach((duel) => {
+            target.appendChild(createDuelListItem(duel));
+        });
+    } else {
+        target.innerHTML = '<li>Нет дуэлей</li>';
+    }
+}
+
+
 async function duelsByMonth(selectedMonth) {
     try {
         const response = await fetch(`/duel/month/${selectedMonth}`);
@@ -18,37 +74,7 @@ async function duelsByMonth(selectedMonth) {
 
         if (data.duels.length > 0) {
             data.duels.forEach(duel => {
-                const listItem = document.createElement('li');
-
-                const header = document.createElement('div');
-                header.textContent = `${duel.date}. ${duel.word}`;
-                listItem.appendChild(header);
-
-                const participants = Array.isArray(duel.participants) ? duel.participants : [];
-
-                const firstLine = document.createElement('div');
-                const first = participants[0];
-                if (first) {
-                    firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
-                } else {
-                    firstLine.textContent = '—';
-                }
-                listItem.appendChild(firstLine);
-
-                const secondLine = document.createElement('div');
-                const second = participants[1];
-                if (second) {
-                    secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
-                } else {
-                    secondLine.textContent = '—';
-                }
-                listItem.appendChild(secondLine);
-
-                listItem.title = `Начало: ${duel.start_time}\nКонец: ${duel.end_time}\nДлительность: ${duel.duration} минут`;
-
-                listItem.dataset.duelId = duel.id;
-                listItem.addEventListener('click', () => loadDuelVersions(duel.id));
-
+                const listItem = createDuelListItem(duel);
                 duelList.appendChild(listItem);
             });
         } else {
@@ -79,6 +105,11 @@ async function loadDuelVersions(duelId) {
         } else {
             header.textContent = `Версии дуэли — Всего: ${total}`;
         }
+
+        currentDuelMeta.id = duelId;
+        currentDuelMeta.wordId = data.word_id ?? null;
+        currentDuelMeta.word = data.word ?? '';
+        currentDuelMeta.participants = Array.isArray(data.participants) ? data.participants : [];
 
         const infoBlock = document.getElementById('duel-info');
         if (infoBlock) {
@@ -165,6 +196,8 @@ async function loadDuelVersions(duelId) {
         } else {
             list.innerHTML = '<li>Нет версий для данной дуэли</li>';
         }
+
+        updateThirdColumn();
     } catch (error) {
         console.error('Ошибка:', error);
     }
@@ -193,6 +226,119 @@ document.getElementById('duel-version-graph-btn').addEventListener('click', asyn
 
 document.getElementById('duel-stats-btn').addEventListener('click', () => {
     window.open('/duel/stats', '_blank');
+});
+
+
+async function renderContextForDuelWord() {
+    const header = document.getElementById('any-duel-header');
+    const list = document.getElementById('any-duel-list');
+    list.innerHTML = '';
+
+    if (!currentDuelMeta.wordId) {
+        header.textContent = 'Контекст слова дуэли';
+        list.innerHTML = '<li>Сначала выберите дуэль</li>';
+        return;
+    }
+
+    header.textContent = `Контекст: ${currentDuelMeta.word || ''}`;
+    try {
+        const response = await fetch(`/word/${currentDuelMeta.wordId}`);
+        if (!response.ok) throw new Error('Ошибка при загрузке контекста слова');
+        const data = await response.json();
+
+        if (data && Array.isArray(data.context) && data.context.length > 0) {
+            data.context.forEach((item, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index}. ${item}`;
+                setBgItem(index, listItem);
+                list.appendChild(listItem);
+            });
+        } else {
+            list.innerHTML = '<li>Контекст не найден</li>';
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке контекста слова дуэли', error);
+        list.innerHTML = '<li>Не удалось загрузить контекст</li>';
+    }
+}
+
+
+async function renderParticipantDuels() {
+    const header = document.getElementById('any-duel-header');
+    const list = document.getElementById('any-duel-list');
+    list.innerHTML = '';
+
+    if (!currentDuelMeta.participants.length) {
+        header.textContent = 'Дуэли участников';
+        list.innerHTML = '<li>Сначала выберите дуэль</li>';
+        return;
+    }
+
+    const userIds = currentDuelMeta.participants
+        .map((p) => p.id)
+        .filter((id) => typeof id === 'number');
+
+    header.textContent = 'Дуэли участников выбранной дуэли';
+
+    if (!userIds.length) {
+        list.innerHTML = '<li>Нет данных об участниках</li>';
+        return;
+    }
+
+    try {
+        const params = encodeURIComponent(userIds.join(','));
+        const response = await fetch(`/duel/by_users?ids=${params}`);
+        if (!response.ok) throw new Error('Ошибка при загрузке дуэлей участников');
+        const data = await response.json();
+        const duels = Array.isArray(data.duels) ? data.duels : [];
+
+        renderDuelList(list, duels);
+    } catch (error) {
+        console.error('Ошибка при загрузке дуэлей участников', error);
+        list.innerHTML = '<li>Не удалось загрузить дуэли участников</li>';
+    }
+}
+
+
+async function renderDuelsByWord() {
+    const header = document.getElementById('any-duel-header');
+    const list = document.getElementById('any-duel-list');
+    list.innerHTML = '';
+
+    if (!currentDuelMeta.wordId) {
+        header.textContent = 'Дуэли по слову';
+        list.innerHTML = '<li>Сначала выберите дуэль</li>';
+        return;
+    }
+
+    header.textContent = `Дуэли по слову: ${currentDuelMeta.word || ''}`;
+    try {
+        const response = await fetch(`/duel/by_word/${currentDuelMeta.wordId}`);
+        if (!response.ok) throw new Error('Ошибка при загрузке дуэлей слова');
+        const data = await response.json();
+        const duels = Array.isArray(data.duels) ? data.duels : [];
+        renderDuelList(list, duels);
+    } catch (error) {
+        console.error('Ошибка при загрузке дуэлей по слову', error);
+        list.innerHTML = '<li>Не удалось загрузить дуэли по слову</li>';
+    }
+}
+
+
+function updateThirdColumn() {
+    const mode = document.querySelector('input[name="duel-sort"]:checked')?.value;
+    if (mode === 'participants') {
+        renderParticipantDuels();
+    } else if (mode === 'word-duels') {
+        renderDuelsByWord();
+    } else {
+        renderContextForDuelWord();
+    }
+}
+
+
+document.querySelectorAll('input[name="duel-sort"]').forEach((radio) => {
+    radio.addEventListener('change', () => updateThirdColumn());
 });
 
 function setBgItem(index, listItem) {
