@@ -23,6 +23,87 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
+async def _load_duels(session, extra_filters: Sequence):
+    result = await session.execute(
+        select(
+            Duel.id,
+            Duel.created_at,
+            Duel.started_at,
+            Duel.finished_at,
+            Duel.winner_id,
+            Duel.is_draw,
+            Word.word,
+            User.id.label("user_id"),
+            User.username.label("user_name"),
+            func.count(DuelVersion.id).label("version_count"),
+            DuelParticipant.joined_at,
+        )
+        .join(Word, Duel.word_id == Word.id, isouter=True)
+        .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
+        .join(User, DuelParticipant.user_id == User.id)
+        .join(
+            DuelVersion,
+            (DuelVersion.duel_id == Duel.id)
+            & (DuelVersion.user_id == User.id),
+            isouter=True,
+        )
+        .filter(Duel.status != "cancelled", *extra_filters)
+        .group_by(
+            Duel.id,
+            Duel.created_at,
+            Duel.started_at,
+            Duel.finished_at,
+            Duel.winner_id,
+            Duel.is_draw,
+            Word.word,
+            User.id,
+            User.username,
+            DuelParticipant.joined_at,
+        )
+        .order_by(Duel.created_at, DuelParticipant.joined_at)
+    )
+
+    rows = result.all()
+    grouped = {}
+    for (
+        duel_id,
+        created,
+        started,
+        finished,
+        winner_id,
+        is_draw,
+        word,
+        user_id,
+        user_name,
+        version_count,
+        _,
+    ) in rows:
+        grouped.setdefault(
+            duel_id,
+            {
+                "id": duel_id,
+                "date": created.strftime("%d.%m.%Y") if created else "",
+                "word": word or "",
+                "start_time": started.strftime("%H:%M:%S") if started else None,
+                "end_time": finished.strftime("%H:%M:%S") if finished else None,
+                "duration": round((finished - started).total_seconds() / 60, 1)
+                if started and finished
+                else None,
+                "winner_id": winner_id,
+                "is_draw": is_draw,
+                "participants": [],
+            },
+        )["participants"].append(
+            {
+                "id": user_id,
+                "name": user_name,
+                "version_count": version_count,
+            }
+        )
+
+    return list(grouped.values())
+
+
 def _build_shared_best_history(
     attempts: Sequence[tuple[str | int, int]],
     players: Sequence[str | int],
@@ -233,88 +314,44 @@ async def get_month_duel(month: str):
         date_month = datetime.datetime.strptime(month, "%m %Y")
         _, last_day = calendar.monthrange(date_month.year, date_month.month)
 
-        result = await session.execute(
-            select(
-                Duel.id,
-                Duel.created_at,
-                Duel.started_at,
-                Duel.finished_at,
-                Duel.winner_id,
-                Duel.is_draw,
-                Word.word,
-                User.id.label("user_id"),
-                User.username.label("user_name"),
-                func.count(DuelVersion.id).label("version_count"),
-                DuelParticipant.joined_at,
-            )
-            .join(Word, Duel.word_id == Word.id, isouter=True)
-            .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
-            .join(User, DuelParticipant.user_id == User.id)
-            .join(
-                DuelVersion,
-                (DuelVersion.duel_id == Duel.id)
-                & (DuelVersion.user_id == User.id),
-                isouter=True,
-            )
-            .filter(
-                Duel.created_at >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
-                Duel.created_at <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
-                Duel.status != "cancelled",
-            )
-            .group_by(
-                Duel.id,
-                Duel.created_at,
-                Duel.started_at,
-                Duel.finished_at,
-                Duel.winner_id,
-                Duel.is_draw,
-                Word.word,
-                User.id,
-                User.username,
-                DuelParticipant.joined_at,
-            )
-            .order_by(Duel.created_at, DuelParticipant.joined_at)
+        duels = await _load_duels(
+            session,
+            [
+                Duel.created_at
+                >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
+                Duel.created_at
+                <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
+            ],
         )
 
-        rows = result.all()
-        grouped = {}
-        for (
-            duel_id,
-            created,
-            started,
-            finished,
-            winner_id,
-            is_draw,
-            word,
-            user_id,
-            user_name,
-            version_count,
-            _,
-        ) in rows:
-            grouped.setdefault(
-                duel_id,
-                {
-                    "id": duel_id,
-                    "date": created.strftime("%d.%m.%Y"),
-                    "word": word or "",
-                    "start_time": started.strftime("%H:%M:%S") if started else None,
-                    "end_time": finished.strftime("%H:%M:%S") if finished else None,
-                    "duration": round((finished - started).total_seconds()/60, 1)
-                    if started and finished
-                    else None,
-                    "winner_id": winner_id,
-                    "is_draw": is_draw,
-                    "participants": [],
-                },
-            )["participants"].append(
-                {
-                    "id": user_id,
-                    "name": user_name,
-                    "version_count": version_count,
-                }
-            )
+    return JSONResponse(content={"duels": duels})
 
-    return JSONResponse(content={"duels": list(grouped.values())})
+
+@router.get("/by_word/{word_id}")
+async def get_duels_by_word(word_id: int):
+    async with get_session() as session:
+        duels = await _load_duels(session, [Duel.word_id == word_id])
+
+    return JSONResponse(content={"duels": duels})
+
+
+@router.get("/by_users")
+async def get_duels_by_users(ids: str | None = None):
+    if not ids:
+        return JSONResponse(content={"duels": []})
+
+    try:
+        user_ids = {int(i) for i in ids.split(",") if i}
+    except ValueError:
+        return JSONResponse(content={"duels": []})
+
+    if not user_ids:
+        return JSONResponse(content={"duels": []})
+
+    async with get_session() as session:
+        duels = await _load_duels(session, [DuelParticipant.user_id.in_(user_ids)])
+
+    return JSONResponse(content={"duels": duels})
 
 
 @router.get("/versions/{duel_id}")
@@ -327,6 +364,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 Duel.finished_at,
                 Duel.winner_id,
                 Duel.is_draw,
+                Word.id.label("word_id"),
                 Word.word,
                 User.id.label("user_id"),
                 User.username.label("user_name"),
@@ -352,6 +390,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 Duel.finished_at,
                 Duel.winner_id,
                 Duel.is_draw,
+                Word.id,
                 Word.word,
                 User.id,
                 User.username,
@@ -369,12 +408,13 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
         duel_is_draw: bool | None = None
 
         if info_rows:
-            created, started, finished, winner_id, is_draw, word, *_ = info_rows[0]
+            created, started, finished, winner_id, is_draw, word_id, word, *_ = info_rows[0]
             duel_started_at = started
             duel_finished_at = finished
             duel_is_draw = is_draw
             duel_info = {
                 "word": word or "",
+                "word_id": word_id,
                 "date": created.strftime("%d.%m.%Y"),
                 "start_time": started.strftime("%H:%M:%S") if started else None,
                 "end_time": finished.strftime("%H:%M:%S") if finished else None,
