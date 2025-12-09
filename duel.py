@@ -251,7 +251,11 @@ async def duel_dashboard(request: Request):
 
     """Render the duel admin dashboard with available months."""
     async with get_session() as session:
-        result_d = await session.execute(select(Duel.created_at).order_by(Duel.created_at))
+        result_d = await session.execute(
+            select(Duel.created_at)
+            .filter(Duel.status != "cancelled")
+            .order_by(Duel.created_at)
+        )
         duels = result_d.all()
 
     duel_month = []
@@ -302,6 +306,7 @@ async def get_month_duel(month: str):
             .filter(
                 Duel.created_at >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
                 Duel.created_at <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
+                Duel.status != "cancelled",
             )
             .group_by(
                 Duel.id,
