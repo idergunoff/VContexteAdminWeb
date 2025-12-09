@@ -44,6 +44,68 @@ def _build_shared_best_history(
     return histories
 
 
+def _log_progress(
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None = None,
+    gamma: float = 10,
+    scale: float = 20,
+) -> float:
+    """
+    Логарифмическая шкала прогресса.
+    Progress = scale · Σ ln((old_best + γ)/(new_best + γ))
+
+    ranks — список рангов после каждой попытки.
+    """
+    if not ranks:
+        return 0.0
+
+    best = shared_best_before[0] if shared_best_before else ranks[0]
+    progress = 0.0
+    start_index = 0 if shared_best_before else 1
+
+    for idx, r in enumerate(ranks[start_index:], start=start_index):
+        current_best = shared_best_before[idx] if shared_best_before else best
+        if r < current_best:  # улучшение
+            progress += log((current_best + gamma) / (r + gamma))
+            best = r
+        else:
+            best = min(current_best, r)
+
+        if shared_best_before and idx + 1 < len(shared_best_before):
+            best = min(shared_best_before[idx + 1], best)
+
+    return progress * scale
+
+
+def _quality_penalty(
+    ranks: list[int],
+    shared_best_before: Sequence[int] | None = None,
+    p: float = 50000,
+) -> float:
+    """
+    QualityPenalty = Σ max(0, r_i − best_{i-1}) / p
+    Штраф за «плохие» попытки, которые увеличивают ранг относительно лучшего.
+    """
+    if not ranks:
+        return 0.0
+
+    best = shared_best_before[0] if shared_best_before else ranks[0]
+    penalty = 0.0
+    start_index = 0 if shared_best_before else 1
+
+    for idx, r in enumerate(ranks[start_index:], start=start_index):
+        current_best = shared_best_before[idx] if shared_best_before else best
+        if r > current_best:                 # ушёл дальше от секрета
+            r = 30000 if r == 999999 else r
+            penalty += (r - current_best) / p
+            best = current_best
+        else:
+            best = r
+
+        if shared_best_before and idx + 1 < len(shared_best_before):
+            best = min(shared_best_before[idx + 1], best)
+
+    return penalty
 
 
 def _eff_norm(
@@ -84,7 +146,6 @@ def _vp_components(
     """Return VP component scores: (progress, efficiency, quality_penalty)."""
 
     progress = _log_progress(ranks, shared_best_before)
-    progress_score = min(progress, 120)
 
     progress_factor = min(1.0, progress / 50) if progress > 0 else 0.0
     efficiency = 0.0
@@ -97,115 +158,7 @@ def _vp_components(
 
     qp = _quality_penalty(ranks, shared_best_before)
 
-    return progress_score, efficiency, qp
-
-
-def _eff_norm(
-    time_sec: int,
-    attempts: int,
-    avg_time: int | None = None,
-    avg_attempts: int | None = None,
-) -> float:
-    """
-    Normalized efficiency (0–1), combining time and attempts.
-    """
-
-    base_time = avg_time if avg_time and avg_time > 0 else 900
-    base_attempts = avg_attempts if avg_attempts and avg_attempts > 0 else 100
-
-    time_score = max(0, (base_time - time_sec) / base_time)
-    guess_score = max(0, (base_attempts - attempts) / base_attempts)
-
-    return 0.5 * (time_score + guess_score)
-
-
-class Outcome(Enum):
-    WIN = 1
-    DRAW = 0.5
-    LOSS = 0
-
-
-def _vp_components(
-    *,
-    outcome: Outcome,
-    ranks: list[int],
-    shared_best_before: Sequence[int] | None,
-    time_sec: int,
-    attempts: int,
-    avg_time_ref: int | None = None,
-    avg_attempts_ref: int | None = None,
-) -> tuple[float, float, float]:
-    """Return VP component scores: (progress, efficiency, quality_penalty)."""
-
-    progress = _log_progress(ranks, shared_best_before)
-    progress_score = min(progress, 120)
-
-    progress_factor = min(1.0, progress / 50) if progress > 0 else 0.0
-    efficiency = 0.0
-    if outcome is Outcome.WIN:
-        efficiency = (
-            _eff_norm(time_sec, attempts, avg_time_ref, avg_attempts_ref)
-            * 80
-            * progress_factor
-        )
-
-    qp = _quality_penalty(ranks, shared_best_before)
-
-    return progress_score, efficiency, qp
-
-
-def _eff_norm(
-    time_sec: int,
-    attempts: int,
-    avg_time: int | None = None,
-    avg_attempts: int | None = None,
-) -> float:
-    """
-    Normalized efficiency (0–1), combining time and attempts.
-    """
-
-    base_time = avg_time if avg_time and avg_time > 0 else 900
-    base_attempts = avg_attempts if avg_attempts and avg_attempts > 0 else 100
-
-    time_score = max(0, (base_time - time_sec) / base_time)
-    guess_score = max(0, (base_attempts - attempts) / base_attempts)
-
-    return 0.5 * (time_score + guess_score)
-
-
-class Outcome(Enum):
-    WIN = 1
-    DRAW = 0.5
-    LOSS = 0
-
-
-def _vp_components(
-    *,
-    outcome: Outcome,
-    ranks: list[int],
-    shared_best_before: Sequence[int] | None,
-    time_sec: int,
-    attempts: int,
-    avg_time_ref: int | None = None,
-    avg_attempts_ref: int | None = None,
-) -> tuple[float, float, float]:
-    """Return VP component scores: (progress, efficiency, quality_penalty)."""
-
-    progress = _log_progress(ranks, shared_best_before)
-    progress_score = min(progress, 120)
-
-    progress_factor = min(1.0, progress / 50) if progress > 0 else 0.0
-    efficiency = 0.0
-    if outcome is Outcome.WIN:
-        efficiency = (
-            _eff_norm(time_sec, attempts, avg_time_ref, avg_attempts_ref)
-            * 80
-            * progress_factor
-        )
-
-    qp = _quality_penalty(ranks, shared_best_before)
-
-    return progress_score, efficiency, qp
+    return progress, efficiency, qp
 
 
 def _progress_penalty_steps(

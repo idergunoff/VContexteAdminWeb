@@ -116,7 +116,8 @@ async function loadDuelVersions(duelId) {
 
                     const vpDetails = vpParts.length ? ` (${vpParts.join(' / ')})` : '';
 
-                    lines.push(`👥 ${p.name} (${total} 👍${improved}/👎${notImproved})${data.winner_id === p.id ? ' 👑' : ''} 💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`); // 👥 ... 👑
+                    lines.push(`${data.winner_id === p.id ? ' 👑' : ''}👥 ${p.name} (${total} 👍${improved}/👎${notImproved})`);
+                    lines.push(`💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`);
                     if (vpDetails) {
                         lines.push(`↳ VP: ${vpDetails}`);
                     }
