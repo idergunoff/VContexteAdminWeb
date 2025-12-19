@@ -41,7 +41,9 @@ class User(Base):
     block = relationship('UserBlock', back_populates='user')
     ttt = relationship('TryingTopTen', back_populates='user')
     coin = relationship('UserCoin', back_populates='user')
+    du_r = relationship('UserDuR', back_populates='user')
     transaction = relationship('UserTransaction', back_populates='user')
+    user_vp = relationship('UserVP', back_populates='user')
     every_day = relationship('UserEveryDay', back_populates='user')
     alpha = relationship('UserAlpha', back_populates='user')
     referral_code = relationship('ReferralCode', back_populates='user')
@@ -60,6 +62,15 @@ class UserCoin(Base):
     user = relationship('User', back_populates='coin')
 
 
+class UserDuR(Base):
+    __tablename__ = 'user_du_r'
+
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    du_r = Column(Float, default=1500)
+
+    user = relationship('User', back_populates='du_r')
+
+
 class UserTransaction(Base):
     __tablename__ = 'user_transaction'
 
@@ -70,6 +81,16 @@ class UserTransaction(Base):
     date_trans = Column(DateTime)
 
     user = relationship('User', back_populates='transaction')
+
+
+class UserVP(Base):
+    __tablename__ = 'user_vp'
+
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    season = Column(String)
+    vp = Column(Integer, default=0)
+
+    user = relationship('User', back_populates='user_vp')
 
 
 class UserBlock(Base):
@@ -495,5 +516,4 @@ async def init_models():
 # Функция для запуска инициализации
 def init_db():
     asyncio.run(init_models())
-
 

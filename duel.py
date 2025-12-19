@@ -381,6 +381,8 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 Word.word,
                 User.id.label("user_id"),
                 User.username.label("user_name"),
+                UserDuR.du_r.label("user_du_r"),
+                UserVP.vp.label("user_vp"),
                 func.count(DuelVersion.id).label("version_count"),
                 DuelParticipant.joined_at,
                 DuelParticipant.coins_delta.label("coins_delta"),
@@ -390,6 +392,8 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             .join(Word, Duel.word_id == Word.id, isouter=True)
             .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
             .join(User, DuelParticipant.user_id == User.id)
+            .join(UserDuR, UserDuR.user_id == User.id, isouter=True)
+            .join(UserVP, UserVP.user_id == User.id, isouter=True)
             .join(
                 DuelVersion,
                 (DuelVersion.duel_id == Duel.id)
@@ -411,6 +415,8 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                 DuelParticipant.coins_delta,
                 DuelParticipant.vp_delta,
                 DuelParticipant.du_r_delta,
+                UserDuR.du_r,
+                UserVP.vp,
             )
             .order_by(DuelParticipant.joined_at)
         )
@@ -459,6 +465,8 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
             _,
             user_id,
             user_name,
+            user_du_r,
+            user_vp,
             version_count,
             _,
             coins_delta,
@@ -471,8 +479,10 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                     "name": user_name,
                     "version_count": version_count,
                     "coins": coins_delta,
-                    "vp": vp_delta,
-                    "du_r": du_r_delta,
+                    "vp": user_vp,
+                    "du_r": user_du_r,
+                    "vp_delta": vp_delta,
+                    "du_r_delta": du_r_delta,
                 }
             )
 
@@ -673,5 +683,3 @@ async def duel_versions_graph(duel_id: int):
         return HTMLResponse(content="Duel not found", status_code=404)
     html = await graph_duel_versions_plotly(duel)
     return HTMLResponse(content=html)
-
-

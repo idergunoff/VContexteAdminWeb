@@ -129,6 +129,14 @@ async function loadDuelVersions(duelId) {
                     const total = p.version_count ?? stats.total ?? 0;
                     const improved = stats.improved ?? 0;
                     const notImproved = Math.max(total - improved, 0);
+                    const ratingParts = [];
+                    if (p.du_r !== null && p.du_r !== undefined) {
+                        ratingParts.push(p.du_r);
+                    }
+                    if (p.vp !== null && p.vp !== undefined) {
+                        ratingParts.push(p.vp);
+                    }
+                    const ratingSuffix = ratingParts.length ? `-${ratingParts.join('-')}` : '';
 
                     const vpParts = [];
                     if (typeof p.vp_progress === 'number') {
@@ -143,7 +151,7 @@ async function loadDuelVersions(duelId) {
 
                     const vpDetails = vpParts.length ? ` (${vpParts.join(' / ')})` : '';
 
-                    lines.push(`${data.winner_id === p.id ? ' 👑' : ''}👥 ${p.name} (${total} 👍${improved}/👎${notImproved})`);
+                    lines.push(`${data.winner_id === p.id ? ' 👑' : ''}👥 ${p.name}${ratingSuffix} (${total} 👍${improved}/👎${notImproved})`);
                     lines.push(`💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`);
                     if (vpDetails) {
                         lines.push(`↳ VP: ${vpDetails}`);
@@ -352,4 +360,3 @@ function setBgItem(index, listItem) {
         listItem.style.backgroundColor = '#ff9f98';
     }
 }
-
