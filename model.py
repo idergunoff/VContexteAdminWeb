@@ -49,6 +49,28 @@ class User(Base):
     duel_parts = relationship('DuelParticipant', back_populates='user')
     duel_versions = relationship('DuelVersion', back_populates='user')
 
+    du_r = relationship('UserDuR', back_populates='user', uselist=False)
+    user_vp = relationship('UserVP', back_populates='user')
+
+
+class UserDuR(Base):
+    __tablename__ = 'user_du_r'
+
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    du_r = Column(Float, default=1500)
+
+    user = relationship('User', back_populates='du_r')
+
+
+class UserVP(Base):
+    __tablename__ = 'user_vp'
+
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    season = Column(String)
+    vp = Column(Integer, default=0)
+
+    user = relationship('User', back_populates='user_vp')
+
 
 class UserCoin(Base):
     __tablename__ = 'user_coin'
