@@ -586,6 +586,71 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
     return JSONResponse(content={**duel_info, "versions": versions})
 
 
+@router.get("/word_play_dates/{duel_id}")
+async def get_duel_word_play_dates(duel_id: int):
+    async with async_session() as session:
+        duel_result = await session.execute(
+            select(Duel).options(selectinload(Duel.word)).filter(Duel.id == duel_id)
+        )
+        duel = duel_result.scalar_one_or_none()
+        if not duel:
+            return JSONResponse(content={"detail": "Duel not found"}, status_code=404)
+
+        participants_result = await session.execute(
+            select(User.id, User.username, DuelParticipant.joined_at)
+            .join(DuelParticipant, DuelParticipant.user_id == User.id)
+            .filter(DuelParticipant.duel_id == duel_id)
+            .order_by(DuelParticipant.joined_at)
+        )
+        participants_rows = participants_result.all()
+        user_ids = [row[0] for row in participants_rows]
+
+        if not user_ids:
+            return JSONResponse(
+                content={"word": duel.word.word if duel.word else "", "participants": []}
+            )
+
+        tryings_result = await session.execute(
+            select(Trying.user_id, Trying.date_trying)
+            .filter(Trying.word_id == duel.word_id, Trying.user_id.in_(user_ids))
+            .order_by(Trying.date_trying)
+        )
+        duel_versions_result = await session.execute(
+            select(DuelVersion.user_id, func.min(DuelVersion.ts))
+            .filter(
+                DuelVersion.duel_id == duel_id,
+                DuelVersion.user_id.in_(user_ids),
+            )
+            .group_by(DuelVersion.user_id)
+        )
+
+        main_dates: dict[int, list[str]] = {uid: [] for uid in user_ids}
+        duel_dates: dict[int, list[str]] = {uid: [] for uid in user_ids}
+
+        for user_id, date_trying in tryings_result.all():
+            if date_trying:
+                main_dates[user_id].append(date_trying.isoformat())
+
+        for user_id, ts in duel_versions_result.all():
+            if ts:
+                duel_dates[user_id].append(ts.isoformat())
+
+        participants = []
+        for user_id, username, _ in participants_rows:
+            participants.append(
+                {
+                    "id": user_id,
+                    "name": username,
+                    "main_tryings": main_dates.get(user_id, []),
+                    "duel_tryings": duel_dates.get(user_id, []),
+                }
+            )
+
+    return JSONResponse(
+        content={"word": duel.word.word if duel.word else "", "participants": participants}
+    )
+
+
 @router.get("/stats", response_class=HTMLResponse)
 async def duel_stats(request: Request):
     async with get_session() as session:

@@ -228,6 +228,68 @@ document.getElementById('duel-version-graph-btn').addEventListener('click', asyn
     }
 });
 
+function formatDateTime(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+    return date.toLocaleString('ru-RU');
+}
+
+document.getElementById('duel-word-play-btn').addEventListener('click', async () => {
+    const duelId = currentDuelMeta.id || document.getElementById('duel_vers-header').dataset.duelId;
+    if (!duelId) {
+        alert('Сначала выберите дуэль.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/duel/word_play_dates/${duelId}`);
+        if (!response.ok) throw new Error('Ошибка при загрузке дат');
+        const data = await response.json();
+
+        const lines = [];
+        if (data.word || currentDuelMeta.word) {
+            lines.push(`Слово: ${data.word || currentDuelMeta.word}`);
+        }
+
+        if (!Array.isArray(data.participants) || data.participants.length === 0) {
+            lines.push('Нет данных об участниках.');
+            alert(lines.join('\n'));
+            return;
+        }
+
+        data.participants.forEach((participant) => {
+            lines.push('');
+            lines.push(`${participant.name}:`);
+
+            const entries = [];
+            (participant.main_tryings || []).forEach((date) => {
+                entries.push({ source: 'Основная', date });
+            });
+            (participant.duel_tryings || []).forEach((date) => {
+                entries.push({ source: 'Дуэль', date });
+            });
+
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (entries.length === 0) {
+                lines.push('— нет');
+            } else {
+                entries.forEach((entry) => {
+                    lines.push(`- ${entry.source}: ${formatDateTime(entry.date)}`);
+                });
+            }
+        });
+
+        alert(lines.join('\n'));
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось загрузить даты попыток.');
+    }
+});
+
 document.getElementById('duel-stats-btn').addEventListener('click', () => {
     window.open('/duel/stats', '_blank');
 });
