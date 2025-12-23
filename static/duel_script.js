@@ -152,7 +152,7 @@ async function loadDuelVersions(duelId) {
                     const vpDetails = vpParts.length ? ` (${vpParts.join(' / ')})` : '';
 
                     lines.push(`${data.winner_id === p.id ? ' 👑' : ''}👥 ${p.name}${ratingSuffix} (${total} 👍${improved}/👎${notImproved})`);
-                    lines.push(`💰${p.coins} 🏆${p.vp} 🎖${p.du_r}`);
+                    lines.push(`💰${p.coins} 🏆${p.vp_delta} 🎖${p.du_r_delta}`);
                     if (vpDetails) {
                         lines.push(`↳ VP: ${vpDetails}`);
                     }
