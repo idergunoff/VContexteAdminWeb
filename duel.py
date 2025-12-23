@@ -589,7 +589,10 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
 @router.get("/word_play_dates/{duel_id}")
 async def get_duel_word_play_dates(duel_id: int):
     async with async_session() as session:
-        duel = await session.get(Duel, duel_id)
+        duel_result = await session.execute(
+            select(Duel).options(selectinload(Duel.word)).filter(Duel.id == duel_id)
+        )
+        duel = duel_result.scalar_one_or_none()
         if not duel:
             return JSONResponse(content={"detail": "Duel not found"}, status_code=404)
 
@@ -613,10 +616,12 @@ async def get_duel_word_play_dates(duel_id: int):
             .order_by(Trying.date_trying)
         )
         duel_versions_result = await session.execute(
-            select(DuelVersion.user_id, DuelVersion.ts)
-            .join(Duel, DuelVersion.duel_id == Duel.id)
-            .filter(Duel.word_id == duel.word_id, DuelVersion.user_id.in_(user_ids))
-            .order_by(DuelVersion.ts)
+            select(DuelVersion.user_id, func.min(DuelVersion.ts))
+            .filter(
+                DuelVersion.duel_id == duel_id,
+                DuelVersion.user_id.in_(user_ids),
+            )
+            .group_by(DuelVersion.user_id)
         )
 
         main_dates: dict[int, list[str]] = {uid: [] for uid in user_ids}
