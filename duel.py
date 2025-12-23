@@ -480,7 +480,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
                     "version_count": version_count,
                     "coins": coins_delta,
                     "vp": user_vp,
-                    "du_r": user_du_r,
+                    "du_r": int(user_du_r),
                     "vp_delta": vp_delta,
                     "du_r_delta": du_r_delta,
                 }
