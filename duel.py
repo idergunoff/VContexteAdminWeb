@@ -60,7 +60,7 @@ async def _load_duels(session, extra_filters: Sequence):
             User.username,
             DuelParticipant.joined_at,
         )
-        .order_by(Duel.created_at, DuelParticipant.joined_at)
+        .order_by(Duel.created_at.desc(), DuelParticipant.joined_at)
     )
 
     rows = result.all()
@@ -288,7 +288,7 @@ async def duel_dashboard(request: Request):
         result_d = await session.execute(
             select(Duel.created_at)
             .filter(Duel.status != "cancelled")
-            .order_by(Duel.created_at)
+            .order_by(Duel.created_at.desc())
         )
         duels = result_d.all()
 
