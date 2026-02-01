@@ -60,7 +60,7 @@ async def _load_duels(session, extra_filters: Sequence):
             User.username,
             DuelParticipant.joined_at,
         )
-        .order_by(Duel.created_at, DuelParticipant.joined_at)
+        .order_by(Duel.created_at.desc(), DuelParticipant.joined_at)
     )
 
     rows = result.all()
@@ -288,7 +288,7 @@ async def duel_dashboard(request: Request):
         result_d = await session.execute(
             select(Duel.created_at)
             .filter(Duel.status != "cancelled")
-            .order_by(Duel.created_at)
+            .order_by(Duel.created_at.desc())
         )
         duels = result_d.all()
 
@@ -313,14 +313,26 @@ async def get_month_duel(month: str):
     async with get_session() as session:
         date_month = datetime.datetime.strptime(month, "%m %Y")
         _, last_day = calendar.monthrange(date_month.year, date_month.month)
+        month_start = datetime.datetime(
+            year=date_month.year,
+            month=date_month.month,
+            day=1,
+        )
+        month_end = datetime.datetime(
+            year=date_month.year,
+            month=date_month.month,
+            day=last_day,
+            hour=23,
+            minute=59,
+            second=59,
+            microsecond=999999,
+        )
 
         duels = await _load_duels(
             session,
             [
-                Duel.created_at
-                >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
-                Duel.created_at
-                <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
+                Duel.created_at >= month_start,
+                Duel.created_at <= month_end,
             ],
         )
 
