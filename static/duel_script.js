@@ -168,7 +168,12 @@ async function loadDuelVersions(duelId) {
         if (data.versions && data.versions.length > 0) {
             data.versions.forEach((version, index) => {
                 const li = document.createElement('li');
-                let text = `${version.idx_personal ?? index + 1}. ${version.text ?? ''} ✏️${version.idx_global ?? ''}`;
+                const timeLabel = formatTime(version.ts);
+                let text = `${version.idx_personal ?? index + 1}. ${version.text ?? ''}`;
+                if (timeLabel) {
+                    text += ` ${timeLabel}`;
+                }
+                text += ` ✏️${version.idx_global ?? ''}`;
                 if (version.delta_rank && version.delta_rank > 0) {
                     text += ` - 🍀${version.delta_rank}`;
                 }
@@ -237,6 +242,15 @@ function formatDateTime(value) {
         return value;
     }
     return date.toLocaleString('ru-RU');
+}
+
+function formatTime(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+    return date.toLocaleTimeString('ru-RU');
 }
 
 document.getElementById('duel-word-play-btn').addEventListener('click', async () => {
