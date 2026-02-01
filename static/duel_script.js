@@ -27,14 +27,16 @@ function createDuelListItem(duel) {
     const firstLine = document.createElement('div');
     const first = participants[0];
     if (first) {
-        firstLine.textContent = `${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
+        const ticketPrefix = first.used_ticket ? '🎟️ ' : '';
+        firstLine.textContent = `${ticketPrefix}${first.name} (${first.version_count})${duel.winner_id === first.id ? ' 👑' : ''}`;
         listItem.appendChild(firstLine);
     }
 
     const second = participants.find((p, idx) => idx !== 0);
     if (second) {
         const secondLine = document.createElement('div');
-        secondLine.textContent = `${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
+        const ticketPrefix = second.used_ticket ? '🎟️ ' : '';
+        secondLine.textContent = `${ticketPrefix}${second.name} (${second.version_count})${duel.winner_id === second.id ? ' 👑' : ''}`;
         listItem.appendChild(secondLine);
     }
 

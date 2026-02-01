@@ -37,6 +37,7 @@ async def _load_duels(session, extra_filters: Sequence):
             User.username.label("user_name"),
             func.count(DuelVersion.id).label("version_count"),
             DuelParticipant.joined_at,
+            DuelParticipant.used_ticket,
         )
         .join(Word, Duel.word_id == Word.id, isouter=True)
         .join(DuelParticipant, DuelParticipant.duel_id == Duel.id)
@@ -59,6 +60,7 @@ async def _load_duels(session, extra_filters: Sequence):
             User.id,
             User.username,
             DuelParticipant.joined_at,
+            DuelParticipant.used_ticket,
         )
         .order_by(Duel.created_at.desc(), DuelParticipant.joined_at)
     )
@@ -77,6 +79,7 @@ async def _load_duels(session, extra_filters: Sequence):
         user_name,
         version_count,
         _,
+        used_ticket,
     ) in rows:
         grouped.setdefault(
             duel_id,
@@ -98,6 +101,7 @@ async def _load_duels(session, extra_filters: Sequence):
                 "id": user_id,
                 "name": user_name,
                 "version_count": version_count,
+                "used_ticket": used_ticket,
             }
         )
 
