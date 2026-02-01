@@ -313,14 +313,26 @@ async def get_month_duel(month: str):
     async with get_session() as session:
         date_month = datetime.datetime.strptime(month, "%m %Y")
         _, last_day = calendar.monthrange(date_month.year, date_month.month)
+        month_start = datetime.datetime(
+            year=date_month.year,
+            month=date_month.month,
+            day=1,
+        )
+        month_end = datetime.datetime(
+            year=date_month.year,
+            month=date_month.month,
+            day=last_day,
+            hour=23,
+            minute=59,
+            second=59,
+            microsecond=999999,
+        )
 
         duels = await _load_duels(
             session,
             [
-                Duel.created_at
-                >= datetime.datetime(year=date_month.year, month=date_month.month, day=1),
-                Duel.created_at
-                <= datetime.datetime(year=date_month.year, month=date_month.month, day=last_day),
+                Duel.created_at >= month_start,
+                Duel.created_at <= month_end,
             ],
         )
 
