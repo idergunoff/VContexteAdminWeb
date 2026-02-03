@@ -122,6 +122,7 @@ class Word(Base):
     emojik = relationship('HintEmojik', back_populates='word')
     results = relationship('ResultControl', back_populates='word')
     duels = relationship('Duel', back_populates='word')
+    ai_trying = relationship('AITrying', back_populates='word')
 
 
 class WordStat(Base):
@@ -505,6 +506,17 @@ class DuelVersion(Base):
 
     duel = relationship("Duel", back_populates="versions")
     user = relationship("User", back_populates="duel_versions")
+
+
+
+class AITrying(Base):
+    __tablename__ = 'ai_trying'
+
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer, ForeignKey('word.id'))
+    idx = Column(String)
+
+    word = relationship('Word', back_populates='ai_trying')
 
 
 # Base.metadata.create_all(engine)

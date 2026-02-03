@@ -604,7 +604,7 @@ async def get_duel_versions(duel_id: int, sort: str = "time"):
 
 @router.get("/word_play_dates/{duel_id}")
 async def get_duel_word_play_dates(duel_id: int):
-    async with async_session() as session:
+    async with get_session() as session:
         duel_result = await session.execute(
             select(Duel).options(selectinload(Duel.word)).filter(Duel.id == duel_id)
         )
