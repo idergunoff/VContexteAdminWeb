@@ -132,6 +132,68 @@ async def admin_page(request: Request):
         return templates.TemplateResponse("dashboard.html", {"request": request, "dict_all": dict_all})
 
 
+@app.get("/ai_trying", response_class=HTMLResponse)
+async def ai_trying_page(request: Request):
+    async with get_session() as session:
+        result = await session.execute(
+            select(Word.id, Word.word)
+            .join(AITrying, AITrying.word_id == Word.id)
+            .distinct()
+        )
+        words = result.all()
+
+    word_list = [
+        {"id": word_id, "word": word}
+        for word_id, word in words
+    ]
+    word_list = sorted(word_list, key=lambda item: (item["word"] or "").lower())
+
+    return templates.TemplateResponse(
+        "dashboard_ai_trying.html",
+        {"request": request, "dict_all": {"word_list": word_list}}
+    )
+
+
+@app.get("/ai_trying/word/{word_id}")
+async def get_ai_trying_word(word_id: str):
+    word_id = int(word_id)
+    async with get_session() as session:
+        result_w = await session.execute(select(Word).filter_by(id=word_id))
+        word = result_w.scalars().first()
+
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        result_ai = await session.execute(
+            select(AITrying)
+            .filter_by(word_id=word_id)
+            .order_by(AITrying.id)
+        )
+        ai_entries = result_ai.scalars().all()
+
+    entries = []
+    for entry in ai_entries:
+        try:
+            idx_list = json.loads(entry.idx) if entry.idx else []
+        except json.JSONDecodeError:
+            idx_list = []
+        entries.append({"id": entry.id, "idx": idx_list})
+
+    try:
+        context = json.loads(word.context) if word.context else []
+    except json.JSONDecodeError:
+        context = []
+
+    return JSONResponse(content={
+        "word": {
+            "id": word.id,
+            "word": word.word,
+            "context": context
+        },
+        "entries": entries
+    })
+
+
 @app.get("/versions/{trying_id}")
 async def get_user_versions(trying_id: str, version_sort: str, version_type: str):
     # async with get_session() as session:
