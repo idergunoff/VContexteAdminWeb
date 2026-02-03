@@ -657,6 +657,10 @@ document.getElementById('duel-btn').addEventListener('click', () => {
     window.open('/duel', '_blank');
 });
 
+document.getElementById('ai-trying-btn').addEventListener('click', () => {
+    window.open('/ai_trying', '_blank');
+});
+
 
 document.getElementById('search-word').addEventListener('input', () => {
     const searchValue = document.getElementById('search-word').value.toLowerCase().trim();

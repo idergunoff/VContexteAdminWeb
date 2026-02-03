@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trying</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="header">
+        <h1 class="title">AI Trying</h1>
+        <button class="logout-button" onclick="logout()">Выйти</button>
+    </header>
+
+    <div class="container">
+        <div class="btn-column">
+            <div class="btn-container">
+                <button disabled>&nbsp;</button>
+                <button disabled>&nbsp;</button>
+                <button disabled>&nbsp;</button>
+            </div>
+        </div>
+        <div class="btn-column">
+            <div class="btn-container">
+                <button disabled>&nbsp;</button>
+                <button disabled>&nbsp;</button>
+                <button disabled>&nbsp;</button>
+            </div>
+        </div>
+        <div class="btn-column">
+            <div class="btn-container">
+                <button disabled>&nbsp;</button>
+                <button disabled>&nbsp;</button>
+                <button disabled>&nbsp;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="column">
+            <h2 id="ai-word-header">AITrying</h2>
+            <label for="ai-word-select">Выберите слово:</label>
+            <select id="ai-word-select">
+                {% for item in dict_all.word_list %}
+                    <option value="{{ item.id }}">{{ item.word }}</option>
+                {% endfor %}
+            </select>
+            <ul id="ai-trying-list">
+                <li>Выберите слово для отображения записей</li>
+            </ul>
+        </div>
+        <div class="column">
+            <h2 id="ai-context-header">Контекст</h2>
+            <ul id="ai-context-list">
+                <li>Выберите запись AITrying для отображения контекста</li>
+            </ul>
+        </div>
+        <div class="column">
+            <h2>Дополнительно</h2>
+            <ul id="ai-extra-list">
+                <li>Третий столбец пока не задействован</li>
+            </ul>
+        </div>
+    </div>
+    <script src="/static/ai_trying_script.js"></script>
+</body>
+</html>
