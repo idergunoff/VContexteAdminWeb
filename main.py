@@ -24,7 +24,7 @@ from model import *
 from duel import router as duel_router
 from func import (get_versions_main, get_versions_tt, get_trying_by_word, get_first_word_by_user,
                   check_word_facts, get_dict_fact)
-from graph import graph_vers_plotly, draw_graph_user, draw_graph_word, draw_distr_trying
+from graph import graph_vers_plotly, draw_graph_user, draw_graph_word, draw_distr_trying, draw_distr_ai_trying, draw_graph_ai_trying
 from control.control_ai import check_control_al
 
 app = FastAPI()
@@ -473,6 +473,18 @@ async def get_graph_word(word_id):
 @app.get("/graph_distr_trying/{word_id}")
 async def get_graph_distr_trying(word_id):
     chart_html = await draw_distr_trying(int(word_id))
+    return HTMLResponse(content=chart_html, status_code=200)
+
+
+@app.get("/graph_distr_ai_trying/{word_id}")
+async def get_graph_distr_ai_trying(word_id):
+    chart_html = await draw_distr_ai_trying(int(word_id))
+    return HTMLResponse(content=chart_html, status_code=200)
+
+
+@app.get("/graph_ai_trying/{ai_trying_id}")
+async def get_graph_ai_trying(ai_trying_id):
+    chart_html = await draw_graph_ai_trying(int(ai_trying_id))
     return HTMLResponse(content=chart_html, status_code=200)
 
 
