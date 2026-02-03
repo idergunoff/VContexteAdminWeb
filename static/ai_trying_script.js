@@ -56,10 +56,17 @@ function renderEntries(entries, context) {
         const listItem = document.createElement('li');
         listItem.textContent = `${index + 1}. ${label}`;
         listItem.classList.add('word-item');
-        listItem.addEventListener('click', () => renderContext(idxList, context));
+        listItem.dataset.tryingId = entry.id;
+        listItem.addEventListener('click', () => {
+            currentTryingId = entry.id;
+            renderContext(idxList, context);
+        });
         list.appendChild(listItem);
     });
 }
+
+let currentWordId = null;
+let currentTryingId = null;
 
 async function loadAiTrying(wordId) {
     if (!wordId) {
@@ -78,6 +85,9 @@ async function loadAiTrying(wordId) {
         const entries = data.entries || [];
 
         header.textContent = `Слово: ${word.word ?? ''} id ${word.id ?? ''} — Всего: ${entries.length}`;
+        header.dataset.wordId = word.id ?? '';
+        currentWordId = word.id ?? null;
+        currentTryingId = null;
         renderEntries(entries, context);
         renderContext([], []);
     } catch (error) {
@@ -94,4 +104,27 @@ if (wordSelect) {
     if (wordSelect.value) {
         loadAiTrying(wordSelect.value);
     }
+}
+
+const graphDistrBtn = document.getElementById('ai-trying-distr-btn');
+if (graphDistrBtn) {
+    graphDistrBtn.addEventListener('click', () => {
+        const wordId = currentWordId ?? document.getElementById('ai-word-header')?.dataset?.wordId;
+        if (!wordId) {
+            alert('Сначала выберите слово');
+            return;
+        }
+        window.open(`/graph_distr_trying/${wordId}`, '_blank');
+    });
+}
+
+const graphTryingBtn = document.getElementById('ai-trying-graph-btn');
+if (graphTryingBtn) {
+    graphTryingBtn.addEventListener('click', () => {
+        if (!currentTryingId) {
+            alert('Сначала выберите попытку');
+            return;
+        }
+        window.open(`/graph_trying/${currentTryingId}`, '_blank');
+    });
 }
