@@ -114,7 +114,7 @@ if (graphDistrBtn) {
             alert('Сначала выберите слово');
             return;
         }
-        window.open(`/graph_distr_trying/${wordId}`, '_blank');
+        window.open(`/graph_distr_ai_trying/${wordId}`, '_blank');
     });
 }
 
@@ -125,6 +125,6 @@ if (graphTryingBtn) {
             alert('Сначала выберите попытку');
             return;
         }
-        window.open(`/graph_trying/${currentTryingId}`, '_blank');
+        window.open(`/graph_ai_trying/${currentTryingId}`, '_blank');
     });
 }

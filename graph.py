@@ -714,3 +714,122 @@ async def draw_distr_trying(word_id):
     )
 
     return fig.to_html(full_html=True, include_plotlyjs="cdn")
+
+
+async def draw_distr_ai_trying(word_id):
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).options(selectinload(Trying.versions)).filter_by(
+            word_id=word_id, done=True, skip=False
+        ))
+        tryings = result_t.scalars().all()
+
+        result_ai = await session.execute(select(AITrying).filter_by(word_id=word_id).order_by(AITrying.id))
+        ai_entries = result_ai.scalars().all()
+
+    list_count_vers = [len(t.versions) for t in tryings]
+    list_count_ai = []
+    for entry in ai_entries:
+        try:
+            idx_list = json.loads(entry.idx) if entry.idx else []
+        except json.JSONDecodeError:
+            idx_list = []
+        list_count_ai.append(len(idx_list))
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=False,
+        subplot_titles=(
+            "Распределение количества версий (основные попытки)",
+            "Распределение количества попыток (AITrying)"
+        ),
+        vertical_spacing=0.08,
+        specs=[[{"secondary_y": True}], [{"secondary_y": True}]]
+    )
+
+    fig.add_trace(go.Histogram(
+        x=list_count_vers,
+        nbinsx=max(10, int(len(set(list_count_vers)) / 2)) if list_count_vers else 10,
+        marker=dict(color='blue', opacity=0.6),
+        name='Распределение версий'
+    ), row=1, col=1, secondary_y=False)
+
+    if len(list_count_vers) > 1:
+        density = gaussian_kde(list_count_vers)
+        x_vals = np.linspace(min(list_count_vers), max(list_count_vers), 100)
+        y_vals = density(x_vals)
+        fig.add_trace(go.Scatter(
+            x=x_vals, y=y_vals,
+            mode='lines',
+            line=dict(color='red', width=2),
+            name='Плотность (версии)'
+        ), row=1, col=1, secondary_y=True)
+
+    fig.add_trace(go.Histogram(
+        x=list_count_ai,
+        nbinsx=max(10, int(len(set(list_count_ai)) / 2)) if list_count_ai else 10,
+        marker=dict(color='green', opacity=0.6),
+        name='Распределение AITrying'
+    ), row=2, col=1, secondary_y=False)
+
+    if len(list_count_ai) > 1:
+        density = gaussian_kde(list_count_ai)
+        x_vals = np.linspace(min(list_count_ai), max(list_count_ai), 100)
+        y_vals = density(x_vals)
+        fig.add_trace(go.Scatter(
+            x=x_vals, y=y_vals,
+            mode='lines',
+            line=dict(color='orange', width=2),
+            name='Плотность (AITrying)'
+        ), row=2, col=1, secondary_y=True)
+
+    fig.update_layout(
+        title="Распределения по количеству попыток",
+        bargap=0.2
+    )
+    fig.update_xaxes(title_text="Количество версий", row=1, col=1)
+    fig.update_xaxes(title_text="Количество попыток (AITrying)", row=2, col=1)
+    fig.update_yaxes(title_text="Частота", row=1, col=1, secondary_y=False)
+    fig.update_yaxes(title_text="Плотность вероятности", row=1, col=1, secondary_y=True)
+    fig.update_yaxes(title_text="Частота", row=2, col=1, secondary_y=False)
+    fig.update_yaxes(title_text="Плотность вероятности", row=2, col=1, secondary_y=True)
+
+    return fig.to_html(full_html=True, include_plotlyjs="cdn")
+
+
+async def draw_graph_ai_trying(ai_trying_id):
+    async with get_session() as session:
+        result_ai = await session.execute(select(AITrying).filter_by(id=ai_trying_id))
+        entry = result_ai.scalars().first()
+
+    if not entry:
+        fig = go.Figure()
+        fig.update_layout(title="AITrying запись не найдена")
+        return fig.to_html(full_html=True, include_plotlyjs="cdn")
+
+    try:
+        idx_list = json.loads(entry.idx) if entry.idx else []
+    except json.JSONDecodeError:
+        idx_list = []
+
+    x_vals = list(range(1, len(idx_list) + 1))
+    y_vals = [val if val > 0 else 1 for val in idx_list]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x_vals,
+        y=y_vals,
+        mode='lines+markers',
+        marker=dict(color='blue', size=6),
+        line=dict(color='blue', width=2),
+        name='AITrying'
+    ))
+
+    fig.update_layout(
+        title="График попытки AITrying",
+        xaxis_title="Шаг",
+        yaxis_title="Индекс (логарифмическая шкала)"
+    )
+    fig.update_yaxes(type="log")
+
+    return fig.to_html(full_html=True, include_plotlyjs="cdn")
