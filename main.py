@@ -136,15 +136,20 @@ async def admin_page(request: Request):
 async def ai_trying_page(request: Request):
     async with get_session() as session:
         result = await session.execute(
-            select(Word.id, Word.word)
+            select(
+                Word.id,
+                Word.word,
+                Word.played,
+                func.count(AITrying.id).label("ai_count"),
+            )
             .join(AITrying, AITrying.word_id == Word.id)
-            .distinct()
+            .group_by(Word.id, Word.word, Word.played)
         )
         words = result.all()
 
     word_list = [
-        {"id": word_id, "word": word}
-        for word_id, word in words
+        {"id": word_id, "word": word, "played": played, "ai_count": ai_count}
+        for word_id, word, played, ai_count in words
     ]
     word_list = sorted(word_list, key=lambda item: (item["word"] or "").lower())
 
