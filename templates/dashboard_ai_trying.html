@@ -42,7 +42,9 @@
             <label for="ai-word-select">Выберите слово:</label>
             <select id="ai-word-select">
                 {% for item in dict_all.word_list %}
-                    <option value="{{ item.id }}">{{ item.word }}</option>
+                    <option value="{{ item.id }}">
+                        {{ item.word }} ({{ item.ai_count }}){% if item.played %} ✅{% endif %}
+                    </option>
                 {% endfor %}
             </select>
             <ul id="ai-trying-list">
