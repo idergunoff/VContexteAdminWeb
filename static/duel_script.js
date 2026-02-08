@@ -244,6 +244,14 @@ function formatDateTime(value) {
     return date.toLocaleString('ru-RU');
 }
 
+function normalizeDateValue(value) {
+    if (!value) return '';
+    if (typeof value === 'object' && value.date) {
+        return value.date;
+    }
+    return value;
+}
+
 function formatTime(value) {
     if (!value) return '';
     const date = new Date(value);
@@ -293,13 +301,19 @@ document.getElementById('duel-word-play-btn').addEventListener('click', async ()
                 }
             });
 
-            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            entries.sort(
+                (a, b) =>
+                    new Date(normalizeDateValue(a.date))
+                    - new Date(normalizeDateValue(b.date))
+            );
 
             if (entries.length === 0) {
                 lines.push('— нет');
             } else {
                 entries.forEach((entry) => {
-                    lines.push(`- ${entry.source}: ${formatDateTime(entry.date)}`);
+                    lines.push(
+                        `- ${entry.source}: ${formatDateTime(normalizeDateValue(entry.date))}`
+                    );
                 });
             }
         });
