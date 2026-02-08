@@ -49,14 +49,14 @@ function createDuelListItem(duel) {
 }
 
 
-function renderDuelList(target, duels) {
+function renderDuelList(target, duels, emptyMessage = 'Нет дуэлей') {
     target.innerHTML = '';
     if (duels.length > 0) {
         duels.forEach((duel) => {
             target.appendChild(createDuelListItem(duel));
         });
     } else {
-        target.innerHTML = '<li>Нет дуэлей</li>';
+        target.innerHTML = `<li>${emptyMessage}</li>`;
     }
 }
 
@@ -330,6 +330,15 @@ document.getElementById('duel-stats-btn').addEventListener('click', () => {
 });
 
 
+function setAnyDuelHeader(title, count) {
+    const header = document.getElementById('any-duel-header');
+    if (typeof count === 'number') {
+        header.textContent = `${title} — Всего: ${count}`;
+    } else {
+        header.textContent = title;
+    }
+}
+
 async function renderContextForDuelWord() {
     const header = document.getElementById('any-duel-header');
     const list = document.getElementById('any-duel-list');
@@ -348,6 +357,7 @@ async function renderContextForDuelWord() {
         const data = await response.json();
 
         if (data && Array.isArray(data.context) && data.context.length > 0) {
+            setAnyDuelHeader(`Контекст: ${currentDuelMeta.word || ''}`, data.context.length);
             data.context.forEach((item, index) => {
                 const listItem = document.createElement('li');
                 listItem.textContent = `${index}. ${item}`;
@@ -355,6 +365,7 @@ async function renderContextForDuelWord() {
                 list.appendChild(listItem);
             });
         } else {
+            setAnyDuelHeader(`Контекст: ${currentDuelMeta.word || ''}`, 0);
             list.innerHTML = '<li>Контекст не найден</li>';
         }
     } catch (error) {
@@ -364,7 +375,7 @@ async function renderContextForDuelWord() {
 }
 
 
-async function renderParticipantDuels() {
+async function renderParticipantDuels(participantIndex) {
     const header = document.getElementById('any-duel-header');
     const list = document.getElementById('any-duel-list');
     list.innerHTML = '';
@@ -375,24 +386,25 @@ async function renderParticipantDuels() {
         return;
     }
 
-    const userIds = currentDuelMeta.participants
-        .map((p) => p.id)
-        .filter((id) => typeof id === 'number');
+    const participant = currentDuelMeta.participants[participantIndex];
+    const userId = participant?.id;
 
-    header.textContent = 'Дуэли участников выбранной дуэли';
+    header.textContent = 'Дуэли участника выбранной дуэли';
 
-    if (!userIds.length) {
-        list.innerHTML = '<li>Нет данных об участниках</li>';
+    if (typeof userId !== 'number') {
+        setAnyDuelHeader('Дуэли участника', 0);
+        list.innerHTML = '<li>Нет данных об участнике</li>';
         return;
     }
 
     try {
-        const params = encodeURIComponent(userIds.join(','));
+        const params = encodeURIComponent(String(userId));
         const response = await fetch(`/duel/by_users?ids=${params}`);
         if (!response.ok) throw new Error('Ошибка при загрузке дуэлей участников');
         const data = await response.json();
         const duels = Array.isArray(data.duels) ? data.duels : [];
 
+        setAnyDuelHeader(`Дуэли участника: ${participant?.name || ''}`, duels.length);
         renderDuelList(list, duels);
     } catch (error) {
         console.error('Ошибка при загрузке дуэлей участников', error);
@@ -418,6 +430,7 @@ async function renderDuelsByWord() {
         if (!response.ok) throw new Error('Ошибка при загрузке дуэлей слова');
         const data = await response.json();
         const duels = Array.isArray(data.duels) ? data.duels : [];
+        setAnyDuelHeader(`Дуэли по слову: ${currentDuelMeta.word || ''}`, duels.length);
         renderDuelList(list, duels);
     } catch (error) {
         console.error('Ошибка при загрузке дуэлей по слову', error);
@@ -428,8 +441,10 @@ async function renderDuelsByWord() {
 
 function updateThirdColumn() {
     const mode = document.querySelector('input[name="duel-sort"]:checked')?.value;
-    if (mode === 'participants') {
-        renderParticipantDuels();
+    if (mode === 'participant-1') {
+        renderParticipantDuels(0);
+    } else if (mode === 'participant-2') {
+        renderParticipantDuels(1);
     } else if (mode === 'word-duels') {
         renderDuelsByWord();
     } else {
