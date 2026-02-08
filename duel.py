@@ -632,24 +632,38 @@ async def get_duel_word_play_dates(duel_id: int):
             .order_by(Trying.date_trying)
         )
         duel_versions_result = await session.execute(
-            select(DuelVersion.user_id, func.min(DuelVersion.ts))
-            .filter(
-                DuelVersion.duel_id == duel_id,
-                DuelVersion.user_id.in_(user_ids),
+            select(
+                DuelParticipant.user_id,
+                Duel.id,
+                Duel.started_at,
+                Duel.finished_at,
+                Duel.created_at,
             )
-            .group_by(DuelVersion.user_id)
+            .join(Duel, DuelParticipant.duel_id == Duel.id)
+            .filter(
+                Duel.word_id == duel.word_id,
+                DuelParticipant.user_id.in_(user_ids),
+                Duel.started_at.is_not(None),
+            )
+            .order_by(Duel.started_at, Duel.id)
         )
 
         main_dates: dict[int, list[str]] = {uid: [] for uid in user_ids}
-        duel_dates: dict[int, list[str]] = {uid: [] for uid in user_ids}
+        duel_dates: dict[int, list[dict[str, str | int]]] = {uid: [] for uid in user_ids}
 
         for user_id, date_trying in tryings_result.all():
             if date_trying:
                 main_dates[user_id].append(date_trying.isoformat())
 
-        for user_id, ts in duel_versions_result.all():
-            if ts:
-                duel_dates[user_id].append(ts.isoformat())
+        for user_id, duel_id, started_at, finished_at, created_at in duel_versions_result.all():
+            duel_date = started_at or finished_at or created_at
+            if duel_date:
+                duel_dates[user_id].append(
+                    {
+                        "duel_id": duel_id,
+                        "date": duel_date.isoformat(),
+                    }
+                )
 
         participants = []
         for user_id, username, _ in participants_rows:
