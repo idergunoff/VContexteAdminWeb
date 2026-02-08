@@ -284,8 +284,13 @@ document.getElementById('duel-word-play-btn').addEventListener('click', async ()
             (participant.main_tryings || []).forEach((date) => {
                 entries.push({ source: 'Основная', date });
             });
-            (participant.duel_tryings || []).forEach((date) => {
-                entries.push({ source: 'Дуэль', date });
+            (participant.duel_tryings || []).forEach((item) => {
+                if (typeof item === 'string') {
+                    entries.push({ source: 'Дуэль', date: item });
+                } else if (item && item.date) {
+                    const label = item.duel_id ? `Дуэль #${item.duel_id}` : 'Дуэль';
+                    entries.push({ source: label, date: item.date });
+                }
             });
 
             entries.sort((a, b) => new Date(a.date) - new Date(b.date));
