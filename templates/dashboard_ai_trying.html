@@ -23,8 +23,9 @@
         <div class="btn-column">
             <div class="btn-container">
                 <button id="ai-trying-graph-btn" title="Процесс отгадывания">📈</button>
-                <button disabled>&nbsp;</button>
-                <button disabled>&nbsp;</button>
+                <button id="ai-delete-trying-btn" type="button" title="Удалить выбранную запись AITrying">🗑️</button>
+                <input id="ai-delete-idx-position" type="number" min="1" step="1" value="1" title="Порядковый номер индекса в списке idx (начиная с 1)">
+                <button id="ai-delete-idx-btn" type="button" title="Удалить индекс из списка idx по указанному номеру">✂️</button>
             </div>
         </div>
         <div class="btn-column">
@@ -62,6 +63,7 @@
             <ul id="ai-extra-list">
                 <li>Третий столбец пока не задействован</li>
             </ul>
+
         </div>
     </div>
     <script src="/static/ai_trying_script.js"></script>

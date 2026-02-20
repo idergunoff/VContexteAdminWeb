@@ -60,9 +60,26 @@ function renderEntries(entries, context) {
         listItem.addEventListener('click', () => {
             currentTryingId = entry.id;
             renderContext(idxList, context);
+            setTryingActionsState(true);
         });
         list.appendChild(listItem);
     });
+}
+
+function setTryingActionsState(enabled) {
+    const deleteTryingBtn = document.getElementById('ai-delete-trying-btn');
+    const deleteIdxBtn = document.getElementById('ai-delete-idx-btn');
+    const deleteIdxPosition = document.getElementById('ai-delete-idx-position');
+
+    if (deleteTryingBtn) {
+        deleteTryingBtn.disabled = !enabled;
+    }
+    if (deleteIdxBtn) {
+        deleteIdxBtn.disabled = !enabled;
+    }
+    if (deleteIdxPosition) {
+        deleteIdxPosition.disabled = !enabled;
+    }
 }
 
 let currentWordId = null;
@@ -88,6 +105,7 @@ async function loadAiTrying(wordId) {
         header.dataset.wordId = word.id ?? '';
         currentWordId = word.id ?? null;
         currentTryingId = null;
+        setTryingActionsState(false);
         renderEntries(entries, context);
         renderContext([], []);
     } catch (error) {
@@ -128,3 +146,69 @@ if (graphTryingBtn) {
         window.open(`/graph_ai_trying/${currentTryingId}`, '_blank');
     });
 }
+
+const deleteTryingBtn = document.getElementById('ai-delete-trying-btn');
+if (deleteTryingBtn) {
+    deleteTryingBtn.addEventListener('click', async () => {
+        if (!currentTryingId) {
+            alert('Сначала выберите попытку');
+            return;
+        }
+
+        const shouldDelete = confirm(`Удалить запись AITrying #${currentTryingId}?`);
+        if (!shouldDelete) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/ai_trying/${currentTryingId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Ошибка удаления записи AITrying');
+            }
+
+            alert(data.message || 'Запись удалена');
+            await loadAiTrying(currentWordId);
+        } catch (error) {
+            console.error(error);
+            alert(error.message || 'Ошибка удаления записи AITrying');
+        }
+    });
+}
+
+const deleteIdxBtn = document.getElementById('ai-delete-idx-btn');
+if (deleteIdxBtn) {
+    deleteIdxBtn.addEventListener('click', async () => {
+        if (!currentTryingId) {
+            alert('Сначала выберите попытку');
+            return;
+        }
+
+        const idxInput = document.getElementById('ai-delete-idx-position');
+        const idxPosition = Number.parseInt(idxInput?.value ?? '', 10);
+        if (!Number.isInteger(idxPosition) || idxPosition <= 0) {
+            alert('Введите корректный порядковый номер (от 1)');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/ai_trying/${currentTryingId}/idx/${idxPosition}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Ошибка удаления индекса');
+            }
+
+            alert(data.message || 'Индекс удален');
+            await loadAiTrying(currentWordId);
+        } catch (error) {
+            console.error(error);
+            alert(error.message || 'Ошибка удаления индекса');
+        }
+    });
+}
+
+setTryingActionsState(false);

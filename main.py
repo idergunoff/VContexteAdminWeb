@@ -199,6 +199,52 @@ async def get_ai_trying_word(word_id: str):
     })
 
 
+@app.delete("/ai_trying/{ai_trying_id}")
+async def delete_ai_trying(ai_trying_id: int):
+    async with get_session() as session:
+        result = await session.execute(select(AITrying).filter_by(id=ai_trying_id))
+        ai_trying = result.scalars().first()
+
+        if not ai_trying:
+            raise HTTPException(status_code=404, detail="AITrying not found")
+
+        await session.delete(ai_trying)
+
+    return {"message": f"Запись AITrying {ai_trying_id} удалена"}
+
+
+@app.delete("/ai_trying/{ai_trying_id}/idx/{position}")
+async def delete_ai_trying_idx(ai_trying_id: int, position: int):
+    if position <= 0:
+        raise HTTPException(status_code=400, detail="Позиция должна быть больше 0")
+
+    async with get_session() as session:
+        result = await session.execute(select(AITrying).filter_by(id=ai_trying_id))
+        ai_trying = result.scalars().first()
+
+        if not ai_trying:
+            raise HTTPException(status_code=404, detail="AITrying not found")
+
+        try:
+            idx_list = json.loads(ai_trying.idx) if ai_trying.idx else []
+        except json.JSONDecodeError:
+            idx_list = []
+
+        if not isinstance(idx_list, list):
+            idx_list = []
+
+        if position > len(idx_list):
+            raise HTTPException(status_code=400, detail=f"Позиция выходит за пределы списка: {len(idx_list)}")
+
+        removed_idx = idx_list.pop(position - 1)
+        ai_trying.idx = json.dumps(idx_list, ensure_ascii=False)
+
+    return {
+        "message": f"Индекс {removed_idx} удален из позиции {position}",
+        "idx": idx_list
+    }
+
+
 @app.get("/versions/{trying_id}")
 async def get_user_versions(trying_id: str, version_sort: str, version_type: str):
     # async with get_session() as session:
