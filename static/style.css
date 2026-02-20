@@ -199,6 +199,19 @@ input[type="text"]#search-word:focus {
 }
 
 
+#ai-delete-idx-position {
+    width: 80px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+#ai-delete-idx-position:disabled {
+    background-color: #eeeeee;
+    cursor: not-allowed;
+}
+
 /* Адаптивные стили для кнопок */
 button {
     background-color: #ffb65e;
