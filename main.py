@@ -393,6 +393,51 @@ async def set_user_alpha(trying_id):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class UserTransactionCreate(BaseModel):
+    amount: int
+
+
+
+
+@app.post("/user_transaction/{trying_id}")
+async def create_user_transaction(trying_id: int, payload: UserTransactionCreate):
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+
+    async with get_session() as session:
+        result_t = await session.execute(select(Trying).filter_by(id=trying_id))
+        trying = result_t.scalar_one_or_none()
+
+        if not trying:
+            raise HTTPException(status_code=404, detail="Trying not found")
+
+        result_uc = await session.execute(select(UserCoin).filter_by(user_id=trying.user_id))
+        user_coin = result_uc.scalar_one_or_none()
+
+        if not user_coin:
+            user_coin = UserCoin(user_id=trying.user_id, coin=0)
+            session.add(user_coin)
+            await session.flush()
+
+        user_coin.coin += payload.amount
+
+        trans = UserTransaction(
+            user_id=trying.user_id,
+            amount=payload.amount,
+            description='admin add neurons',
+            date_trans=datetime.datetime.now()
+        )
+        session.add(trans)
+
+        return {
+            "message": "Transaction created",
+            "user_id": trying.user_id,
+            "trying_id": trying_id,
+            "amount": payload.amount,
+            "balance": user_coin.coin
+        }
+
+
 class WordContextUpdate(BaseModel):
     order: List[dict]
 
