@@ -714,6 +714,49 @@ document.getElementById('first-words-btn').addEventListener('click', async () =>
     }
 });
 
+
+
+document.getElementById('user-transactions-btn').addEventListener('click', async () => {
+    const tryingId = document.getElementById('version-header').getAttribute('data-trying-id');
+    if (!tryingId) {
+        alert('Выберите пользователя');
+        return;
+    }
+
+    const amountInput = document.getElementById('neurons-amount-input');
+    const amount = parseInt(amountInput?.value, 10);
+
+    if (Number.isNaN(amount) || amount <= 0) {
+        alert('Укажите корректное количество нейронов');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/user_transaction/${tryingId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ amount }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data?.detail || 'Не удалось начислить нейроны');
+        }
+
+        alert(`Начислено ${data.amount} нейронов. Баланс: ${data.balance}`);
+
+        const wordId = document.getElementById('trying-header').getAttribute('data-word-id');
+        if (wordId) {
+            await onWordClick(wordId, 0);
+        }
+    } catch (error) {
+        console.error('Ошибка начисления нейронов:', error);
+        alert(error.message || 'Не удалось начислить нейроны');
+    }
+});
 document.getElementById('reset-ai-btn').addEventListener('click', async () => {
     const header = document.getElementById('trying-header');
     const wordId = header.getAttribute('data-word-id');
