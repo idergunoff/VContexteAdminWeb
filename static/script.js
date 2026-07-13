@@ -357,6 +357,177 @@ async function handleRemoveContextWordClick() {
     }
 }
 
+async function handleMoveContextWordClick() {
+    try {
+        const wordHeader = document.getElementById('word-header');
+        if (!wordHeader) {
+            return;
+        }
+
+        const wordId = wordHeader.getAttribute('data-word-id');
+        if (!wordId) {
+            alert('Выберите слово для изменения контекста');
+            return;
+        }
+
+        const orderInput = document.getElementById('word-order-input');
+        if (!orderInput) {
+            return;
+        }
+
+        const fromIndex = parseInt(orderInput.value, 10);
+        if (Number.isNaN(fromIndex) || fromIndex < 0) {
+            alert('Укажите корректный текущий номер элемента контекста');
+            return;
+        }
+
+        const contextItems = document.querySelectorAll('#word-list li.word-item');
+        if (contextItems.length === 0) {
+            alert('Контекст выбранного слова пуст');
+            return;
+        }
+
+        if (fromIndex >= contextItems.length) {
+            alert(`Текущая позиция должна быть от 0 до ${contextItems.length - 1}`);
+            return;
+        }
+
+        const targetValue = window.prompt(
+            `На какую позицию переместить слово контекста? Укажите номер от 0 до ${contextItems.length - 1}.`,
+            String(fromIndex)
+        );
+        if (targetValue === null) {
+            return;
+        }
+
+        const toIndex = parseInt(targetValue, 10);
+        if (Number.isNaN(toIndex) || toIndex < 0 || toIndex >= contextItems.length) {
+            alert(`Укажите корректную новую позицию от 0 до ${contextItems.length - 1}`);
+            return;
+        }
+
+        if (toIndex === fromIndex) {
+            return;
+        }
+
+        const response = await fetch(`/move-context/${wordId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ from_index: fromIndex, to_index: toIndex }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            const detailMessage = typeof data === 'object' && data !== null ? data.detail : null;
+            throw new Error(detailMessage || 'Ошибка при перемещении элемента контекста');
+        }
+
+        orderInput.value = toIndex;
+
+        const selectedMonth = document.getElementById('dropdown')?.value;
+        if (selectedMonth === 'new') {
+            await onNewWordClick(Number(wordId));
+        } else {
+            await onWordClick(Number(wordId), 1);
+        }
+    } catch (error) {
+        console.error('Ошибка при перемещении слова в контексте:', error);
+        alert(error.message || 'Не удалось переместить слово в контексте');
+    }
+}
+
+const moveContextWordBtn = document.getElementById('move-context-word-btn');
+if (moveContextWordBtn) {
+    moveContextWordBtn.addEventListener('click', handleMoveContextWordClick);
+}
+
+async function handleEditContextWordClick() {
+    try {
+        const wordHeader = document.getElementById('word-header');
+        if (!wordHeader) {
+            return;
+        }
+
+        const wordId = wordHeader.getAttribute('data-word-id');
+        if (!wordId) {
+            alert('Выберите слово для изменения контекста');
+            return;
+        }
+
+        const orderInput = document.getElementById('word-order-input');
+        if (!orderInput) {
+            return;
+        }
+
+        const contextIndex = parseInt(orderInput.value, 10);
+        if (Number.isNaN(contextIndex) || contextIndex < 0) {
+            alert('Укажите корректный номер элемента контекста');
+            return;
+        }
+
+        const contextItems = document.querySelectorAll('#word-list li.word-item');
+        if (contextItems.length === 0) {
+            alert('Контекст выбранного слова пуст');
+            return;
+        }
+
+        if (contextIndex >= contextItems.length) {
+            alert(`Позиция для редактирования должна быть от 0 до ${contextItems.length - 1}`);
+            return;
+        }
+
+        const currentText = contextItems[contextIndex].textContent.replace(/^\d+\.\s*/, '');
+        const editedValue = window.prompt(
+            `Отредактируйте слово контекста на позиции ${contextIndex}.`,
+            currentText
+        );
+        if (editedValue === null) {
+            return;
+        }
+
+        const editedWord = editedValue.trim();
+        if (!editedWord) {
+            alert('Слово контекста не может быть пустым');
+            return;
+        }
+
+        if (editedWord === currentText) {
+            return;
+        }
+
+        const response = await fetch(`/edit-context/${wordId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ index: contextIndex, word: editedWord }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            const detailMessage = typeof data === 'object' && data !== null ? data.detail : null;
+            throw new Error(detailMessage || 'Ошибка при редактировании элемента контекста');
+        }
+
+        const selectedMonth = document.getElementById('dropdown')?.value;
+        if (selectedMonth === 'new') {
+            await onNewWordClick(Number(wordId));
+        } else {
+            await onWordClick(Number(wordId), 1);
+        }
+    } catch (error) {
+        console.error('Ошибка при редактировании слова в контексте:', error);
+        alert(error.message || 'Не удалось отредактировать слово в контексте');
+    }
+}
+
+const editContextWordBtn = document.getElementById('edit-context-word-btn');
+if (editContextWordBtn) {
+    editContextWordBtn.addEventListener('click', handleEditContextWordClick);
+}
+
 const removeContextWordBtn = document.getElementById('remove-context-word-btn');
 if (removeContextWordBtn) {
     removeContextWordBtn.addEventListener('click', handleRemoveContextWordClick);
