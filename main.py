@@ -451,6 +451,11 @@ class WordContextMove(BaseModel):
     to_index: int
 
 
+class WordContextEdit(BaseModel):
+    index: int
+    word: str
+
+
 @app.post("/update-context/{word_id}")
 async def update_context(word_id: int, context: WordContextUpdate):
     new_context = [i["word_text"].split('. ')[1] for i in context.order]
@@ -488,6 +493,34 @@ async def delete_context_item(word_id: int, payload: WordContextDelete):
         "context": context_list,
     }
 
+
+@app.post("/edit-context/{word_id}")
+async def edit_context_item(word_id: int, payload: WordContextEdit):
+    word_id = int(word_id)
+    async with get_session() as session:
+        word = await session.get(Word, word_id)
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        context_list = json.loads(word.context)
+
+        if payload.index < 0 or payload.index >= len(context_list):
+            raise HTTPException(status_code=400, detail="Context index out of range")
+
+        edited_item = payload.word.strip()
+        if not edited_item:
+            raise HTTPException(status_code=400, detail="Context word cannot be empty")
+
+        previous_item = context_list[payload.index]
+        context_list[payload.index] = edited_item
+        word.context = json.dumps(context_list)
+
+    return {
+        "message": f"Context item {payload.index} edited for word {word_id}",
+        "previous": previous_item,
+        "edited": edited_item,
+        "context": context_list,
+    }
 
 @app.post("/move-context/{word_id}")
 async def move_context_item(word_id: int, payload: WordContextMove):
